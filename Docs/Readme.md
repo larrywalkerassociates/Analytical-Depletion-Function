@@ -15,13 +15,14 @@ simplifications, these equations nonetheless provide “insight into the
 several factors that affect streamflow depletion and can be used as an
 initial estimate of the effects of a particular well on a nearby stream”
 and are “used by a number of states as the basis for making
-water-management regulatory decisions”(Barlow and Leake, 2012). To
-incorporate variable pumping rates, this program uses the principle of
-linear-superposition, which assumes that the aquifer and stream respond
-linearly to groundwater pumping (e.g. 2x higher pumping will result in
-2x higher depletion all other things being equal). An example where this
-would not be appropriate is if large drawdowns are induced, changing the
-transmissivity of the aquifer and thusly the response to pumping.
+water-management regulatory decisions”(Barlow and Leake, 2012).<br/>
+<br/> Furthermore, to incorporate variable pumping rates this program
+uses the principle of linear-superposition, which assumes that the
+aquifer and stream respond linearly to groundwater pumping (e.g. 2x
+higher pumping will result in 2x higher depletion all other things being
+equal). An example where this would not be appropriate is if large
+drawdowns are induced, changing the transmissivity of the aquifer and
+thusly the response to pumping.
 
 ### Glover Solution
 
