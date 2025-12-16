@@ -39,7 +39,7 @@ drawdown<br/>        small in comparison to saturated thickness.<br/>
 <b>5)</b>    Stream fully penetrates aquifer, is infinitely long, is
 flowing at all times,<br/>        has perfect connection with aquifer,
 and is straight <br/> <br/> <b>6)</b>    Temperature of aquifer and
-stream do not change with time.<br/> <br/>
+stream do not change with time.<br/>
 
 ### Hantush Solution
 

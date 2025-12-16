@@ -43,7 +43,6 @@ The assumptions below, taken and adapted from Barlow and Leake (2012), cause the
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;has perfect connection with aquifer, and is straight <br/>
 <br/>
 <b>6)</b>&nbsp;&nbsp;&nbsp;&nbsp;Temperature of aquifer and stream do not change with time.<br/>
-<br/>
 
 ### Hantush Solution
 
