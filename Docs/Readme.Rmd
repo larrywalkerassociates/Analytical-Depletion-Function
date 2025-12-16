@@ -19,6 +19,27 @@ knitr::opts_knit$set(echo = TRUE,
 options(scipen = 100)
 ```
 
+# Assumptions
+
+Analytical solutions to streamflow depletion can be imnplemented more quickly than numerical models based on software such as MODFLOW because they represent simplified representations of reality and bake in assumptions, depending on the equation used, such as constant stream stage, small drawdown compared to aquifer thickness, simplified stream geometries, homogenous and isotropic aquifers, etc. Despite these simplifications, these equations nonetheless provide "insight into the several factors that affect streamflow depletion and can be used as an initial estimate of the effects of a particular well on a nearby stream" and are "used by a number of states as the basis for making water-management regulatory decisions"(Barlow and Leake, 2012). To incorporate variable pumping rates, this program uses the principle of linear-superposition, which assumes that the aquifer and stream respond linearly to groundwater pumping (e.g. 2x higher pumping will result in 2x higher depletion all other things being equal). An example where this would not be appropriate is if large drawdowns are induced, changing the transmissivity of the aquifer and thusly the response to pumping.
+
+### Glover Solution
+
+The assumptions below, taken and adapted from Barlow and Leake (2012), cause the Glover (1954) solution to produce the highest estimates of streamflow depletion of the models implemented in this program.<br/>
+<br/>
+<b>1)</b>&nbsp;&nbsp;&nbsp;&nbsp;Aquifer is homogenous, isotropic, and extends to infinity away from the stream<br/>
+<br/>
+<b>2)</b>&nbsp;&nbsp;&nbsp;&nbsp;Saturated thickness and transmissivity of the aquifer do not change with time.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I.e. aquifer is confined, or unconfined with drawdown small in comparison to saturated thickness.<br/>
+<br/>
+<b>3)</b>&nbsp;&nbsp;&nbsp;&nbsp;Water is released instantaneously from storage<br/>
+<br/>
+<b>4)</b>&nbsp;&nbsp;&nbsp;&nbsp;Stream fully penetrates aquifer, is infinitely long, is flowing at all times, has perfect connection with aquifer,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and is straight <br/>
+<br/>
+<b>5)</b>&nbsp;&nbsp;&nbsp;&nbsp;Temperature of aquifer and stream do not change with time.<br/>
+<br/>
+
 # Variable documentation
 
 <b><font size = "3">streams</font></b>: *sf object*, series of linestrings describing the streams in the domain.
@@ -117,6 +138,7 @@ Exponential values in the *'hunt'* and *'hantush'* analytical models can often r
 
 # References
 
+Barlow and Leake (2012) https://pubs.usgs.gov/circ/1376/ <br/>
 Glover and Balmer (1954) https://doi.org/10.1029/TR035i003p00468 <br/>
 Hantush (1965) https://doi.org/10.1029/JZ070i012p02829 <br/>
 Hunt (1999) https://doi.org/10.1111/j.1745-6584.1999.tb00962.x <br/>
