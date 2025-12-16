@@ -32,13 +32,38 @@ streamflow depletion of the models implemented in this program.<br/>
 <br/> <b>1)</b>    Aquifer is homogenous, isotropic, and extends to
 infinity away from the stream<br/> <br/> <b>2)</b>    Saturated
 thickness and transmissivity of the aquifer do not change with
-time.<br/>        I.e. aquifer is confined, or unconfined with drawdown
-small in comparison to saturated thickness.<br/> <br/>
-<b>3)</b>    Water is released instantaneously from storage<br/> <br/>
-<b>4)</b>    Stream fully penetrates aquifer, is infinitely long, is
-flowing at all times, has perfect connection with aquifer,<br/>
-       and is straight <br/> <br/> <b>5)</b>    Temperature of aquifer
-and stream do not change with time.<br/> <br/>
+time.<br/>        I.e. aquifer is confined, or unconfined with
+drawdown<br/>        small in comparison to saturated thickness.<br/>
+<br/> <b>3)</b>    Water is released instantaneously from storage<br/>
+<br/> <b>4)</b>    There is no streambank storage<br/> <br/>
+<b>5)</b>    Stream fully penetrates aquifer, is infinitely long, is
+flowing at all times,<br/>        has perfect connection with aquifer,
+and is straight <br/> <br/> <b>6)</b>    Temperature of aquifer and
+stream do not change with time.<br/> <br/>
+
+### Hantush Solution
+
+The Hantush (1965) solution represents a stream that fully penetrates
+the aquifer with a resistive layer separating the stream from the
+aquifer. The assumptions in this solution mirror those expressed above
+for the Glover (1954) solution. As a result, if the resistivity of the
+layer between the aquifer and the stream approaches zero the solution
+collapses to that provided by Glover (1954) (Reeves, 2008).
+
+### Hunt Solution
+
+The Hunt (1999) solution represents a stream that only partially
+penetrates the aquifer with a resistive layer separating the stream from
+the aquifer. The assumptions, taken from Reeves (2008), in this solution
+mirror those expressed above for the Glover (1954) solution, with the
+additions that:<br/> <br/> <b>1)</b>    The stream is assumed to be
+connected with the aquifer at all times<br/>        (i.e. water table
+never falls below streambed).<br/> <br/> <b>2)</b>    The stream width
+is small relative to the aquifer width.<br/> <br/> This solution is
+identical to the Hantush (1965) solution in the special case that
+$\lambda = 2\frac{T}{L}$ , though it should be noted that this will run
+slower than the Hunt (1999) solution in this case due to higher
+precision numbers being needed.
 
 # Variable documentation
 
