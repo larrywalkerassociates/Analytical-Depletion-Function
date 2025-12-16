@@ -1,7 +1,7 @@
 ---
-title: "Arguments"
+title: "Readme"
 author: "Christopher Dory"
-date: "2025-11-18"
+date: "2025-12-16"
 output: github_document
 ---
 ```{r setup, include=FALSE,  message = FALSE, error = FALSE, warning = FALSE}
@@ -78,10 +78,25 @@ options(scipen = 100)
 <b><font size = "3">suppress_console_messages</font></b>: *boolean* default *TRUE*, describes whether to supress user messages to console. Value of *TRUE* does not give console messages.
 <br/>
 <br/>
-<b><font size = "3">stor_coef_key</font></b>: *char* default *'Stor'*, describes the name of the column in the well data that stores the storage coefficient data.
+<b><font size = "3">well_stor_coef_key</font></b>: *char* default *'Stor'*, describes the name of the column in the well data that stores the storage coefficient data.
 <br/>
 <br/>
 <b><font size = "3">well_transmissivity_key</font></b>: *char* default *'Tr'*, describes the name of the column in the well data that stores transmissivity data ($Kb$).
+<br/>
+<br/>
+<b><font size = "3">well_layer_key</font></b>: *char* default *'lay'*, describes the name of the column in the well data that stores data of what aquifer layer the well takes from. Only used if *model_grid* is passed to the function and ensures that aquifer properties of the well are taken from the correct model grid layer.
+<br/>
+<br/>
+<b><font size = "3">model_grid</font></b>: *sf object* default *NULL*, describes a geometric series of model grid cells that contain aquifer property data *grid_layer_key*, *grid_stor_coef_key*, and *grid_transmissivity_key*.
+<br/>
+<br/>
+<b><font size = "3">grid_layer_key</font></b>: *char* default *'lay'*, describes the name of the column in the *model_grid* object that stores data of what aquifer layer the grid cells are attributed to.
+<br/>
+<br/>
+<b><font size = "3">grid_stor_coef_key</font></b>: *char* default *'Stor'*, describes the name of the column in the *model_grid* object that stores the storage coefficient data.
+<br/>
+<br/>
+<b><font size = "3">grid_transmissivity_key</font></b>: *char* default *'Tr'*, describes the name of the column in the *model_grid* object that stores transmissivity data ($Kb$).
 <br/>
 <br/>
 <b><font size = "3">stream_transmissivity_key</font></b>: *char* default *NULL*, describes the name of the column in the stream data that stores transmissivity data ($Kb$). Only necessary if *geologic_apportionment* is set to *TRUE*.
