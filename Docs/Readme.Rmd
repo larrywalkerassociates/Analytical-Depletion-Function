@@ -50,7 +50,7 @@ The Hantush (1965) solution represents a stream that fully penetrates the aquife
 
 ### Hunt Solution
 
-The Hunt (1999) solution represents a stream that only partially penetrates the aquifer with a resistive layer separating the stream from the aquifer. The assumptions, taken from Reeves (2008), in this solution mirror those expressed above for the Glover (1954) solution, with the additions that:<br/>
+The Hunt (1999) solution represents a stream that only partially penetrates the aquifer with a resistive layer separating the stream from the aquifer. The assumptions in this solution, aside from those that conflict with the previous sentence, mirror those expressed above for the Glover (1954) solution (Reeves, 2008). As a consequence of a partially penetrating stream with finite width, the Hunt solution additionally assumes that:<br/>
 <br/>
 <b>1)</b>&nbsp;&nbsp;&nbsp;&nbsp;The stream is assumed to be connected with the aquifer at all times<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(i.e. water table never falls below streambed).<br/>

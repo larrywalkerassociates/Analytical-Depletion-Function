@@ -54,13 +54,15 @@ collapses to that provided by Glover (1954) (Reeves, 2008).
 
 The Hunt (1999) solution represents a stream that only partially
 penetrates the aquifer with a resistive layer separating the stream from
-the aquifer. The assumptions, taken from Reeves (2008), in this solution
-mirror those expressed above for the Glover (1954) solution, with the
-additions that:<br/> <br/> <b>1)</b>    The stream is assumed to be
-connected with the aquifer at all times<br/>        (i.e. water table
-never falls below streambed).<br/> <br/> <b>2)</b>    The stream width
-is small relative to the aquifer width.<br/> <br/> This solution is
-identical to the Hantush (1965) solution in the special case that
+the aquifer. The assumptions in this solution, aside from those that
+conflict with the previous sentence, mirror those expressed above for
+the Glover (1954) solution (Reeves, 2008). As a consequence of a
+partially penetrating stream with finite width, the Hunt solution
+additionally assumes that:<br/> <br/> <b>1)</b>    The stream is assumed
+to be connected with the aquifer at all times<br/>        (i.e. water
+table never falls below streambed).<br/> <br/> <b>2)</b>    The stream
+width is small relative to the aquifer width.<br/> <br/> This solution
+is identical to the Hantush (1965) solution in the special case that
 $\lambda = 2\frac{T}{L}$ , though it should be noted that this will run
 slower than the Hunt (1999) solution in this case due to higher
 precision numbers being needed. <br/> <br/> <br/> <br/>
