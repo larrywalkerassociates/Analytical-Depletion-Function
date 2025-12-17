@@ -5,7 +5,7 @@ Christopher Dory
 
 # Assumptions
 
-Analytical solutions to streamflow depletion can be imnplemented more
+Analytical solutions to streamflow depletion can be implemented more
 quickly than numerical models based on software such as MODFLOW because
 they represent simplified representations of reality and bake in
 assumptions, depending on the equation used, such as constant stream
