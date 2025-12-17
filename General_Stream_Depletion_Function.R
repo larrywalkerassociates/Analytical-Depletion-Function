@@ -1245,15 +1245,17 @@ calculate_stream_depletions <- function(streams,
                          stream_points_geometry = stream_points_geometry)
     {
       #-------------------------------------------------------------------------------
+      closest_points <- stream_points_geometry[closest_points_per_well, ]
+      reaches <- st_drop_geometry(stream_points_geometry[closest_points_per_well,stream_id_key])
+      reaches <- as.vector(unlist(reaches))
+      
+      dists <- as.vector(st_distance(well,
+                                     st_geometry(closest_points)))
+      #-------------------------------------------------------------------------------
+      
+      #-------------------------------------------------------------------------------
       # if geology is not to be considered simply apportion by inverse distance
       if(geologic_apportionment == FALSE){
-        closest_points <- stream_points_geometry[closest_points_per_well, ]
-        reaches <- st_drop_geometry(stream_points_geometry[closest_points_per_well,stream_id_key])
-        reaches <- as.vector(unlist(reaches))
-        
-        dists <- as.vector(st_distance(well,
-                                       st_geometry(closest_points)))
-        
         numerator <- 1/(dists**power)
         denominator <- sum(1/(dists**power))
       } 
@@ -1264,20 +1266,12 @@ calculate_stream_depletions <- function(streams,
       # or just information about the transmissivity of the aquifer at the stream and the
       # well
       if(geologic_apportionment == TRUE){
-        #-------------------------------------------------------------------------------
-        closest_points <- stream_points_geometry[closest_points_per_well, ]
-        reaches <- st_drop_geometry(stream_points_geometry[closest_points_per_well,stream_id_key])
-        reaches <- as.vector(unlist(reaches))
-        #-------------------------------------------------------------------------------
-        
-        
+
         #-------------------------------------------------------------------------------
         # if no model grid use information about aquifer at streams and wells
         if(is.null(model_grid) == TRUE){
           TR_prime <- as.vector(unlist(st_drop_geometry(stream_points_geometry[closest_points_per_well,stream_transmissivity_key])))
           
-          dists <- as.vector(st_distance(well,
-                                         st_geometry(closest_points)))
           TR <- as.vector(unlist(st_drop_geometry(well[,well_transmissivity_key])))
           
           numerator <- (1/(dists**power))*(TR_prime/TR)
@@ -1309,7 +1303,7 @@ calculate_stream_depletions <- function(streams,
             # selecting correct gridcells
             grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
             well_layers <- as.vector(unlist(st_drop_geometry(well[,well_layer_key])))
-            gr <- model_grid[grid_layers == well_layers[j], ]
+            gr <- model_grid[grid_layers == well_layers, ]
             #-------------------------------------------------------------------------------
             
             #-------------------------------------------------------------------------------
@@ -1323,16 +1317,19 @@ calculate_stream_depletions <- function(streams,
             #-------------------------------------------------------------------------------
             
             #-------------------------------------------------------------------------------
-            # getting average properties from grid
-            gr <- gr[grid_inds, ]
-            transmissivity <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
-            TR[[i]] <- transmissivity
+            if(length(grid_inds) > 0){
+              #-------------------------------------------------------------------------------
+              # getting average properties from grid
+              gr <- gr[grid_inds, ]
+              transmissivity <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
+              TR[[i]] <- transmissivity
+              #-------------------------------------------------------------------------------
+            } else {
+              TR[[i]] <- NA
+            }
             #-------------------------------------------------------------------------------
-            
           }
           #-------------------------------------------------------------------------------
-          dists <- as.vector(st_distance(well,
-                                         st_geometry(closest_points)))
           TR <- as.vector(unlist(TR))
           TR[is.nan(TR) == TRUE] <- 0
           TR[is.na(TR) == TRUE] <- 0
@@ -1545,7 +1542,9 @@ calculate_stream_depletions <- function(streams,
         rm <- which(lengths(wells_intersection) == 0)
         if(length(rm) > 0){
           wells_intersection <- c(1:length(wells_intersection))[-c(rm)]
-        } else {}
+        } else {
+          wells_intersection <- c(1:length(wells_intersection))
+        }
         wells_intersection <- closest_voronoi_plus_well[wells_intersection, ]
         #-------------------------------------------------------------------------------
         
@@ -1560,24 +1559,59 @@ calculate_stream_depletions <- function(streams,
         # find which intersections get what depletion fraction
         if(geologic_apportionment == FALSE){
           apportioned_depletions <- voronoi_intersected_areas/well_voronoi_area
-        } else {
+        } 
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # if geology is to be considered, then see whether model_grid argument passed
+        if(geologic_apportionment == TRUE) {
+          
+          #-------------------------------------------------------------------------------
+          # if model grid isnt passed, use information of aquifer at well and at stream location
           if(is.null(model_grid) == TRUE){
             TR <- as.vector(unlist(st_drop_geometry(wells[i,well_transmissivity_key])))
             TR_prime <- as.vector(unlist(st_drop_geometry(closest_stream_points[,stream_transmissivity_key])))
             apportioned_depletions <- (voronoi_intersected_areas*(TR_prime/TR))/sum((voronoi_intersected_areas*(TR_prime/TR)))
-          } else {
-            TR <- list()
-            for(j in 1:nrow(closest_voronoi_intersection)){
-              tr <- st_intersection(model_grid,
-                                    closest_voronoi_intersection$geometry[j])
-              tr <- as.vector(unlist(st_drop_geometry(tr[,grid_transmissivity_key])))
-              TR[[j]] <- mean(tr, na.rm = T)
+          } 
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # if model grid is passed then intersect it with the voronoi polygons and take the
+          # properties of those gridcells
+          if(is.null(model_grid) == FALSE){
+            
+            #-------------------------------------------------------------------------------
+            # selecting correct gridcells
+            grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+            well_layers <- as.vector(unlist(st_drop_geometry(wells[i,well_layer_key])))
+            gr <- model_grid[grid_layers == well_layers, ]
+            #-------------------------------------------------------------------------------
+            
+            #-------------------------------------------------------------------------------
+            # if well takes water from stream
+            if(length(voronoi_intersected_areas) > 0){
+              #-------------------------------------------------------------------------------
+              # if polygon doesnt intersect any gridcells then TR[[j]] will be set to mean(numeric(0))
+              # which becomes NaN, which is then caught and set to 0, representing no flow
+              TR <- list()
+              for(j in 1:nrow(closest_voronoi_intersection)){
+                tr <- st_intersection(gr,
+                                      closest_voronoi_intersection$geometry[j])
+                tr <- as.vector(unlist(st_drop_geometry(tr[,grid_transmissivity_key])))
+                TR[[j]] <- mean(tr, na.rm = T)
+              }
+              TR <- as.vector(unlist(TR))
+              TR[is.nan(TR) == TRUE] <- 0
+              TR[is.na(TR) == TRUE] <- 0
+              apportioned_depletions <- (voronoi_intersected_areas*(TR/max(TR)))/sum((voronoi_intersected_areas*(TR/max(TR))))
+              #-------------------------------------------------------------------------------
+            } else {
+              apportioned_depletions <- rep(NA, nrow(closest_voronoi))
+              closest_voronoi_intersection <- closest_voronoi
             }
-            TR <- as.vector(unlist(TR))
-            TR[is.nan(TR) == TRUE] <- 0
-            TR[is.na(TR) == TRUE] <- 0
-            apportioned_depletions <- (voronoi_intersected_areas*(TR/max(TR)))/sum((voronoi_intersected_areas*(TR/max(TR))))
+            #-------------------------------------------------------------------------------
           }
+          #-------------------------------------------------------------------------------
         }
         apportioned_depletions <- data.frame(dep = apportioned_depletions,
                                              key = closest_voronoi_intersection$key)
@@ -1655,7 +1689,10 @@ calculate_stream_depletions <- function(streams,
     }
     #-------------------------------------------------------------------------------
     
-    
+    #-------------------------------------------------------------------------------
+    # correcting for matrix full of NA values
+    fractions_of_depletions[is.na(fractions_of_depletions) == TRUE] <- 0
+    #-------------------------------------------------------------------------------
     
     #-------------------------------------------------------------------------------
     # writeout statistics
@@ -1729,102 +1766,162 @@ calculate_stream_depletions <- function(streams,
       
       
       #-------------------------------------------------------------------------------
+      # get all the points per reach
+      n_points_per_reach_proximity <- split(stream_points_geometry,
+                                            st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
+      n_points_per_reach_proximity <- n_points_per_reach_proximity[reaches]
+      #-------------------------------------------------------------------------------
+      
+      #-------------------------------------------------------------------------------
+      # get sum per reach of the point distances to the well
+      dists <- lapply(n_points_per_reach_proximity, function(x){
+        s1 <- st_distance(well,
+                          x)
+        sum(as.vector(unlist(s1)))
+      })
+      dists <- as.vector(unlist(dists))
+      #-------------------------------------------------------------------------------
+      
+      #-------------------------------------------------------------------------------
+      # repeat above but with all points
+      n_points_per_reach_all <- split(stream_points_geometry,
+                                      st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
+      n_points_per_reach_all <- n_points_per_reach_all[reaches]
+      #-------------------------------------------------------------------------------
+      
+      #-------------------------------------------------------------------------------
+      # repeat above but with all points
+      dists_all <- lapply(n_points_per_reach_all, function(x){
+        s1 <- st_distance(well,
+                          x)
+        sum(as.vector(unlist(s1)))
+      })
+      dists_all <- as.vector(unlist(dists_all))
+      #-------------------------------------------------------------------------------
+      
+      
+      
+      
+      #-------------------------------------------------------------------------------
       if(geologic_apportionment == FALSE){
-        #-------------------------------------------------------------------------------
-        # get all the points per reach
-        n_points_per_reach_proximity <- split(stream_points_geometry,
-                                              st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
-        n_points_per_reach_proximity <- n_points_per_reach_proximity[reaches]
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # get sum per reach of the point distances to the well
-        dists <- lapply(n_points_per_reach_proximity, function(x){
-          s1 <- st_distance(well,
-                            x)
-          sum(as.vector(unlist(s1)))
-        })
-        dists <- as.vector(unlist(dists))
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # repeat above but with all points
-        n_points_per_reach_all <- split(stream_points_geometry,
-                                        st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
-        n_points_per_reach_all <- n_points_per_reach_all[reaches]
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # repeat above but with all points
-        dists_all <- lapply(n_points_per_reach_all, function(x){
-          s1 <- st_distance(well,
-                            x)
-          sum(as.vector(unlist(s1)))
-        })
-        dists_all <- as.vector(unlist(dists_all))
-        #-------------------------------------------------------------------------------
-        
-        
         #-------------------------------------------------------------------------------
         numerator <- 1/(dists**power)
         denominator <- sum(1/(dists_all**power))
         fractions_of_depletions <- numerator/denominator
         #-------------------------------------------------------------------------------
       }
+      #-------------------------------------------------------------------------------
       
+      
+      
+      #-------------------------------------------------------------------------------
       if(geologic_apportionment == TRUE){
-        
         #-------------------------------------------------------------------------------
-        # get all the points per reach
-        n_points_per_reach_proximity <- split(stream_points_geometry,
-                                              st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
-        n_points_per_reach_proximity <- n_points_per_reach_proximity[reaches]
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        TR <- as.vector(unlist(st_drop_geometry(well[well_transmissivity_key])))
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # get sum per reach of the point distances to the well
-        dists <- lapply(n_points_per_reach_proximity, function(x){
-          s1 <- st_distance(well,
-                            x)
-          sum(as.vector(unlist(s1)))
-        })
-        dists <- as.vector(unlist(dists))
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # repeat above but with all points
-        n_points_per_reach_all <- split(stream_points_geometry,
-                                        st_drop_geometry(stream_points_geometry[ ,stream_id_key]))
-        n_points_per_reach_all <- n_points_per_reach_all[reaches]
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # repeat above but with all points
-        dists_all <- lapply(n_points_per_reach_all, function(x){
-          s1 <- st_distance(well,
-                            x)
-          sum(as.vector(unlist(s1)))
-        })
-        dists_all <- as.vector(unlist(dists_all))
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        TR_prime <- lapply(n_points_per_reach_all, function(x){
+        if(is.null(model_grid) == TRUE){
+          #-------------------------------------------------------------------------------
+          TR <- as.vector(unlist(st_drop_geometry(well[,well_transmissivity_key])))
+          #-------------------------------------------------------------------------------
           
-          mean(as.vector(unlist(st_drop_geometry(x[,stream_transmissivity_key]))))
-        })
-        TR_prime <- as.vector(unlist(TR_prime))
-        #-------------------------------------------------------------------------------
+          #-------------------------------------------------------------------------------
+          TR_prime <- lapply(n_points_per_reach_all, function(x){
+            
+            mean(as.vector(unlist(st_drop_geometry(x[,stream_transmissivity_key]))))
+          })
+          TR_prime <- as.vector(unlist(TR_prime))
+          #-------------------------------------------------------------------------------
           
+          
+          #-------------------------------------------------------------------------------
+          numerator <- (1/(dists**power))*(TR_prime/TR)
+          denominator <- sum((1/(dists_all**power))*(TR_prime/TR))
+          fractions_of_depletions <- numerator/denominator
+          #-------------------------------------------------------------------------------
+        }
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        if(is.null(model_grid) == FALSE){
 
-        #-------------------------------------------------------------------------------
-        numerator <- (1/(dists**power))*(TR_prime/TR)
-        denominator <- sum((1/(dists_all**power))*(TR_prime/TR))
-        fractions_of_depletions <- numerator/denominator
+          #-------------------------------------------------------------------------------
+          # get the coordinates of all points on the reach
+          reach_coords <- lapply(1:length(n_points_per_reach_proximity),function(i){
+            st_coordinates(n_points_per_reach_proximity[[i]])
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # create linestrings from the well to each of these points
+          reach_lines_from_well <- lapply(reach_coords, function(x){
+            #-------------------------------------------------------------------------------
+            # split the coordinates of reach[i] into a list
+            # so split_coords[[1]] will be all the points of reach 1
+            # with each x,y coordinate in its own list index for the below lapply
+            split_coords <- split(x,
+                                  1:nrow(x))
+            #-------------------------------------------------------------------------------
+            
+            #-------------------------------------------------------------------------------
+            # on each coordinate create a matrix of the well and the point
+            # then a linestring out of the point pair
+            # at the end, since this is done per reach, rbind the result and it will be a bunch of
+            # lines from the well to each point on the reach
+            line <- lapply(split_coords,function(x){
+              m <- matrix(c(st_coordinates(well)[,1],
+                            st_coordinates(well)[,2],
+                            x[1],
+                            x[2]),
+                          ncol = 2,
+                          byrow = TRUE)
+              line <- st_sf(st_sfc(st_linestring(m), crs = st_crs(wells)))
+              st_geometry(line) <- 'geometry'
+              line
+            })
+            do.call(rbind, line)
+            #-------------------------------------------------------------------------------
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # selecting correct gridcells
+          grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+          well_layers <- as.vector(unlist(st_drop_geometry(well[,well_layer_key])))
+          gr <- model_grid[grid_layers == well_layers, ]
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # taking gridcells along lines connecting reaches to the well
+          gridcells_along_lines <- lapply(reach_lines_from_well, function(x){
+            step1 <- st_intersects(gr, x)
+            inds <- c(1:length(step1))
+            rm <- inds[lengths(step1) == 0]
+            if(length(rm) > 0){
+              inds <- inds[-c(rm)]
+            } else {}
+            if(length(inds) > 0){
+              step1 <- gr[inds,]
+            } else {
+              step1 <- gr[1,]
+              step1[,grid_transmissivity_key] <- NA
+            }
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          TR <- lapply(gridcells_along_lines, function(x){
+            mean(as.vector(unlist(st_drop_geometry(x[,grid_transmissivity_key]))),
+                 na.rm = T)
+          })
+          TR <- as.vector(unlist(TR))
+          TR[is.nan(TR) == TRUE] <- 0
+          TR[is.na(TR) == TRUE] <- 0
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          numerator <- (1/(dists**power))*(TR/max(TR))
+          denominator <- sum((1/(dists_all**power))*(TR/max(TR)))
+          fractions_of_depletions <- numerator/denominator
+          #-------------------------------------------------------------------------------
+        }
         #-------------------------------------------------------------------------------
       }
       #-------------------------------------------------------------------------------
@@ -4547,10 +4644,13 @@ calculate_stream_depletions <- function(streams,
     
   if(geologic_apportionment == TRUE &
      is.null(stream_transmissivity_key) == TRUE){
-    if(!stream_transmissivity_key %in% colnames(streams) == TRUE){
+    if(is.null(model_grid) == TRUE){
       #-------------------------------------------------------------------------------
       writeLines(text = sprintf('%s',
-                                paste0('Geologic apportionment selected but stream transmissivity key not given')),
+                                paste0('Geologic apportionment selected but neither stream transmissivity key')),
+                 con = log_file)
+      writeLines(text = sprintf('%s',
+                                paste0('nor model grid given.')),
                  con = log_file)
       writeLines(text = sprintf('%s',
                                 'Exiting program ...'),
