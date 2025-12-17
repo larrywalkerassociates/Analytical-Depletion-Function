@@ -1503,7 +1503,6 @@ calculate_stream_depletions <- function(streams,
       #-------------------------------------------------------------------------------
       # if there are closest points continue
       if(length(closest_points_subset) > 0){
-        
         #-------------------------------------------------------------------------------
         # generate thiessen polygons out of the closest points
         closest_stream_points <- stream_points_geometry[closest_points_subset, ]
@@ -1513,174 +1512,210 @@ calculate_stream_depletions <- function(streams,
         closest_stream_points <- closest_stream_points[ ,'key']
         closest_stream_points <- unique(closest_stream_points)
         closest_stream_points$BUFF <- rep(NA, nrow(closest_stream_points))
-        
-        closest_voronoi <- st_voronoi(st_union(st_geometry(closest_stream_points)))
-        closest_voronoi <- st_collection_extract(closest_voronoi,'POLYGON')
-        closest_voronoi <- st_sf(geometry = closest_voronoi, crs = st_crs(closest_voronoi))
-        closest_voronoi$key <- closest_stream_points$key
-        
-        closest_stream_points <- closest_stream_points[ ,'BUFF']
+        keys <- closest_stream_points$key
         #-------------------------------------------------------------------------------
         
         
         #-------------------------------------------------------------------------------
-        # generate thiessen polygons out of the closest points plus the well
-        wells_tmp <- wells[i, ]
-        wells_tmp$BUFF <- rep(NA,nrow(wells_tmp))
-        wells_tmp <- wells_tmp[ ,'BUFF']
-        closest_stream_points_plus_well <- rbind(wells_tmp, closest_stream_points)
-        
-        closest_voronoi_plus_well <- st_voronoi(st_union(st_geometry(closest_stream_points_plus_well)))
-        closest_voronoi_plus_well <- st_collection_extract(closest_voronoi_plus_well,'POLYGON')
-        closest_voronoi_plus_well <- st_sf(geometry = closest_voronoi_plus_well, crs = st_crs(closest_voronoi_plus_well))
-        #-------------------------------------------------------------------------------
-        
-        
-        #-------------------------------------------------------------------------------
-        # which thiessen polygon does the well intersect
-        wells_intersection <- st_intersects(closest_voronoi_plus_well, wells[i, ])
-        rm <- which(lengths(wells_intersection) == 0)
-        if(length(rm) > 0){
-          wells_intersection <- c(1:length(wells_intersection))[-c(rm)]
-        } else {
-          wells_intersection <- c(1:length(wells_intersection))
-        }
-        wells_intersection <- closest_voronoi_plus_well[wells_intersection, ]
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # get areas
-        well_voronoi_area <- as.numeric(st_area(wells_intersection))
-        closest_voronoi_intersection <- st_intersection(closest_voronoi, st_geometry(wells_intersection))
-        voronoi_intersected_areas <- as.numeric(st_area(closest_voronoi_intersection))
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # find which intersections get what depletion fraction
-        if(geologic_apportionment == FALSE){
-          apportioned_depletions <- voronoi_intersected_areas/well_voronoi_area
-        } 
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # if geology is to be considered, then see whether model_grid argument passed
-        if(geologic_apportionment == TRUE) {
+        # if there are enough entities to make Thiessen polygons out of
+        if(length(closest_points_subset) > 1){
+          #-------------------------------------------------------------------------------
+          # generate thiessen polygons out of the closest points plus the well
+          wells_tmp <- wells[i, ]
+          wells_tmp$BUFF <- rep(NA,nrow(wells_tmp))
+          wells_tmp <- wells_tmp[ ,'BUFF']
+          closest_stream_points <- closest_stream_points[ ,'BUFF']
+          closest_stream_points_plus_well <- rbind(wells_tmp, closest_stream_points)
+          
+          closest_voronoi_plus_well <- st_voronoi(st_union(st_geometry(closest_stream_points_plus_well)))
+          closest_voronoi_plus_well <- st_collection_extract(closest_voronoi_plus_well,'POLYGON')
+          closest_voronoi_plus_well <- st_sf(geometry = closest_voronoi_plus_well, crs = st_crs(closest_voronoi_plus_well))
+          #-------------------------------------------------------------------------------
+          
           
           #-------------------------------------------------------------------------------
-          # if model grid isnt passed, use information of aquifer at well and at stream location
-          if(is.null(model_grid) == TRUE){
-            TR <- as.vector(unlist(st_drop_geometry(wells[i,well_transmissivity_key])))
-            TR_prime <- as.vector(unlist(st_drop_geometry(closest_stream_points[,stream_transmissivity_key])))
-            apportioned_depletions <- (voronoi_intersected_areas*(TR_prime/TR))/sum((voronoi_intersected_areas*(TR_prime/TR)))
+          envelope <- st_bbox(closest_voronoi_plus_well)
+          envelope <- st_as_sfc(envelope)
+          # st_geometry(envelope) <- 'geometry'
+          closest_voronoi <- st_voronoi(st_union(st_geometry(closest_stream_points)),
+                                        envelope = envelope)
+          closest_voronoi <- st_collection_extract(closest_voronoi,'POLYGON')
+          closest_voronoi <- st_sf(geometry = closest_voronoi, crs = st_crs(closest_voronoi))
+          closest_voronoi$key <- keys
+          #-------------------------------------------------------------------------------
+          
+          
+          #-------------------------------------------------------------------------------
+          # which thiessen polygon does the well intersect
+          wells_intersection <- st_intersects(closest_voronoi_plus_well, wells[i, ])
+          rm <- which(lengths(wells_intersection) == 0)
+          if(length(rm) > 0){
+            wells_intersection <- c(1:length(wells_intersection))[-c(rm)]
+          } else {
+            wells_intersection <- c(1:length(wells_intersection))
+          }
+          wells_intersection <- closest_voronoi_plus_well[wells_intersection, ]
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # get areas
+          well_voronoi_area <- as.numeric(st_area(wells_intersection))
+          closest_voronoi_intersection <- st_intersection(closest_voronoi, st_geometry(wells_intersection))
+          voronoi_intersected_areas <- as.numeric(st_area(closest_voronoi_intersection))
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # find which intersections get what depletion fraction
+          if(geologic_apportionment == FALSE){
+            apportioned_depletions <- voronoi_intersected_areas/well_voronoi_area
           } 
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # if model grid is passed then intersect it with the voronoi polygons and take the
-          # properties of those gridcells
-          if(is.null(model_grid) == FALSE){
+          # if geology is to be considered, then see whether model_grid argument passed
+          if(geologic_apportionment == TRUE) {
             
             #-------------------------------------------------------------------------------
-            # selecting correct gridcells
-            grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
-            well_layers <- as.vector(unlist(st_drop_geometry(wells[i,well_layer_key])))
-            gr <- model_grid[grid_layers == well_layers, ]
+            # if model grid isnt passed, use information of aquifer at well and at stream location
+            if(is.null(model_grid) == TRUE){
+              TR <- as.vector(unlist(st_drop_geometry(wells[i,well_transmissivity_key])))
+              TR_prime <- as.vector(unlist(st_drop_geometry(closest_stream_points[,stream_transmissivity_key])))
+              apportioned_depletions <- (voronoi_intersected_areas*(TR_prime/TR))/sum((voronoi_intersected_areas*(TR_prime/TR)))
+            } 
             #-------------------------------------------------------------------------------
             
             #-------------------------------------------------------------------------------
-            # if well takes water from stream
-            if(length(voronoi_intersected_areas) > 0){
+            # if model grid is passed then intersect it with the voronoi polygons and take the
+            # properties of those gridcells
+            if(is.null(model_grid) == FALSE){
+              
               #-------------------------------------------------------------------------------
-              # if polygon doesnt intersect any gridcells then TR[[j]] will be set to mean(numeric(0))
-              # which becomes NaN, which is then caught and set to 0, representing no flow
-              TR <- list()
-              for(j in 1:nrow(closest_voronoi_intersection)){
-                tr <- st_intersection(gr,
-                                      closest_voronoi_intersection$geometry[j])
-                tr <- as.vector(unlist(st_drop_geometry(tr[,grid_transmissivity_key])))
-                TR[[j]] <- mean(tr, na.rm = T)
+              # selecting correct gridcells
+              grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+              well_layers <- as.vector(unlist(st_drop_geometry(wells[i,well_layer_key])))
+              gr <- model_grid[grid_layers == well_layers, ]
+              #-------------------------------------------------------------------------------
+              
+              #-------------------------------------------------------------------------------
+              # if well takes water from stream
+              if(length(voronoi_intersected_areas) > 0){
+                #-------------------------------------------------------------------------------
+                # if polygon doesnt intersect any gridcells then TR[[j]] will be set to mean(numeric(0))
+                # which becomes NaN, which is then caught and set to 0, representing no flow
+                TR <- list()
+                for(j in 1:nrow(closest_voronoi_intersection)){
+                  tr <- st_intersection(gr,
+                                        closest_voronoi_intersection$geometry[j])
+                  tr <- as.vector(unlist(st_drop_geometry(tr[,grid_transmissivity_key])))
+                  TR[[j]] <- mean(tr, na.rm = T)
+                }
+                TR <- as.vector(unlist(TR))
+                TR[is.nan(TR) == TRUE] <- 0
+                TR[is.na(TR) == TRUE] <- 0
+                apportioned_depletions <- (voronoi_intersected_areas*(TR/max(TR)))/sum((voronoi_intersected_areas*(TR/max(TR))))
+                #-------------------------------------------------------------------------------
+              } else {
+                apportioned_depletions <- rep(NA, nrow(closest_voronoi))
+                closest_voronoi_intersection <- closest_voronoi
               }
-              TR <- as.vector(unlist(TR))
-              TR[is.nan(TR) == TRUE] <- 0
-              TR[is.na(TR) == TRUE] <- 0
-              apportioned_depletions <- (voronoi_intersected_areas*(TR/max(TR)))/sum((voronoi_intersected_areas*(TR/max(TR))))
               #-------------------------------------------------------------------------------
-            } else {
-              apportioned_depletions <- rep(NA, nrow(closest_voronoi))
-              closest_voronoi_intersection <- closest_voronoi
             }
             #-------------------------------------------------------------------------------
           }
+          apportioned_depletions <- data.frame(dep = apportioned_depletions,
+                                               key = closest_voronoi_intersection$key)
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # get which voronoi polygons these depletions should be assigned to
+          surrounding_voronoi <- st_intersects(closest_voronoi, closest_voronoi_intersection)
+          rm <- which(lengths(surrounding_voronoi) == 0)
+          if(length(rm) > 0){
+            surrounding_voronoi <- c(1:length(surrounding_voronoi))[-c(rm)]
+          } else {
+            surrounding_voronoi <- c(1:length(surrounding_voronoi))
+          }
+          surrounding_voronoi <- closest_voronoi[surrounding_voronoi, ]
+          #-------------------------------------------------------------------------------
+          
+          
+          #-------------------------------------------------------------------------------
+          # re-creating original points
+          closest_stream_points <- stream_points_geometry[closest_points_subset, ]
+          closest_stream_points$key <- paste(st_coordinates(closest_stream_points)[ ,1],
+                                             st_coordinates(closest_stream_points)[ ,2],
+                                             sep = '_')
+          closest_stream_points <- closest_stream_points[ ,'key']
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # in case more than one point got collapsed to a single voronoi polygon
+          depletions_accounting_duplicates <- lapply(apportioned_depletions$key, function(x){
+            length(which(closest_stream_points$key == x))
+          })
+          depletions_accounting_duplicates <- unlist(depletions_accounting_duplicates)
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # dividing depletions among duplicates (if exists)
+          apportioned_depletions$dep <- 
+            apportioned_depletions$dep/depletions_accounting_duplicates
+          apportioned_depletions$divisor <- depletions_accounting_duplicates
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # assigning depletions to points in the correct positions
+          frac <- lapply(closest_stream_points$key, function(x){
+            apportioned_depletions$dep[apportioned_depletions$key == x]
+          })
+          frac[lengths(frac) == 0] <- NA
+          frac <- unlist(frac)
+          closest_stream_points$frac <- frac
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # finding what reaches these depletions apply to
+          reach_names <- as.numeric(row.names(closest_stream_points)[(is.na(closest_stream_points$frac) == FALSE)])
+          
+          reach_names <- st_drop_geometry(stream_points_geometry[reach_names, stream_id_key])
+          reach_names <- as.vector(unlist(reach_names))
+          closest_stream_points$reach_name <- rep(NA, nrow(closest_stream_points))
+          closest_stream_points$reach_name[is.na(closest_stream_points$frac) == FALSE] <- reach_names
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # output
+          fractions_of_depletions[i,
+                                  as.numeric(colnames(fractions_of_depletions)) %in% as.numeric(reach_names)] <-
+            frac[is.na(frac) == FALSE]
+          reaches[i, as.numeric(colnames(reaches)) %in% as.numeric(reach_names)] <-
+            as.vector(reach_names)
           #-------------------------------------------------------------------------------
         }
-        apportioned_depletions <- data.frame(dep = apportioned_depletions,
-                                             key = closest_voronoi_intersection$key)
         #-------------------------------------------------------------------------------
         
+        
         #-------------------------------------------------------------------------------
-        # get which voronoi polygons these depletions should be assigned to
-        surrounding_voronoi <- st_intersects(closest_voronoi, closest_voronoi_intersection)
-        rm <- which(lengths(surrounding_voronoi) == 0)
-        if(length(rm) > 0){
-          surrounding_voronoi <- c(1:length(surrounding_voronoi))[-c(rm)]
-        } else {
-          surrounding_voronoi <- c(1:length(surrounding_voronoi))
+        # if there are not enough entities to make polygons out of, all depletions go to the
+        # only reach included
+        if(length(closest_points_subset) == 1){
+          #-------------------------------------------------------------------------------
+          # finding what reaches these depletions apply to
+          reach_names <- as.numeric(row.names(closest_stream_points))
+          
+          reach_names <- st_drop_geometry(stream_points_geometry[reach_names, stream_id_key])
+          reach_names <- as.vector(unlist(reach_names))
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # output
+          fractions_of_depletions[i,
+                                  as.numeric(colnames(fractions_of_depletions)) %in% as.numeric(reach_names)] <- 1
+          reaches[i, as.numeric(colnames(reaches)) %in% as.numeric(reach_names)] <-
+            as.vector(reach_names)
+          #-------------------------------------------------------------------------------
+          
         }
-        surrounding_voronoi <- closest_voronoi[surrounding_voronoi, ]
-        #-------------------------------------------------------------------------------
-        
-        
-        #-------------------------------------------------------------------------------
-        # re-creating original points
-        closest_stream_points <- stream_points_geometry[closest_points_subset, ]
-        closest_stream_points$key <- paste(st_coordinates(closest_stream_points)[ ,1],
-                                           st_coordinates(closest_stream_points)[ ,2],
-                                           sep = '_')
-        closest_stream_points <- closest_stream_points[ ,'key']
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # in case more than one point got collapsed to a single voronoi polygon
-        depletions_accounting_duplicates <- lapply(apportioned_depletions$key, function(x){
-          length(which(closest_stream_points$key == x))
-        })
-        depletions_accounting_duplicates <- unlist(depletions_accounting_duplicates)
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # dividing depletions among duplicates (if exists)
-        apportioned_depletions$dep <- 
-          apportioned_depletions$dep/depletions_accounting_duplicates
-        apportioned_depletions$divisor <- depletions_accounting_duplicates
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # assigning depletions to points in the correct positions
-        frac <- lapply(closest_stream_points$key, function(x){
-          apportioned_depletions$dep[apportioned_depletions$key == x]
-        })
-        frac[lengths(frac) == 0] <- NA
-        frac <- unlist(frac)
-        closest_stream_points$frac <- frac
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # finding what reaches these depletions apply to
-        reach_names <- as.numeric(row.names(closest_stream_points)[(is.na(closest_stream_points$frac) == FALSE)])
-        
-        reach_names <- st_drop_geometry(stream_points_geometry[reach_names, stream_id_key])
-        reach_names <- as.vector(unlist(reach_names))
-        closest_stream_points$reach_name <- rep(NA, nrow(closest_stream_points))
-        closest_stream_points$reach_name[is.na(closest_stream_points$frac) == FALSE] <- reach_names
-        #-------------------------------------------------------------------------------
-        
-        #-------------------------------------------------------------------------------
-        # output
-        fractions_of_depletions[i,
-                                as.numeric(colnames(fractions_of_depletions)) %in% as.numeric(reach_names)] <-
-          frac[is.na(frac) == FALSE]
-        reaches[i, as.numeric(colnames(reaches)) %in% as.numeric(reach_names)] <-
-          as.vector(reach_names)
         #-------------------------------------------------------------------------------
       } else {
         # pass
