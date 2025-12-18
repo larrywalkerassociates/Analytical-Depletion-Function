@@ -22,7 +22,11 @@ aquifer and stream respond linearly to groundwater pumping (e.g. 2x
 higher pumping will result in 2x higher depletion all other things being
 equal). An example where this would not be appropriate is if large
 drawdowns are induced, changing the transmissivity of the aquifer and
-thusly the response to pumping.
+thusly the response to pumping.<br/> <br/> It is ultimately on the user
+to determine whether these assumptions in combination with potential
+unaccounted for effects of aquifer heterogeneity and boundary geometries
+are appropriate for their use case. For in depth examples see Barlow and
+Leake (2012).<br/>
 
 ### Glover Solution
 
