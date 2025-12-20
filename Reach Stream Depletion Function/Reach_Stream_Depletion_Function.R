@@ -1559,13 +1559,29 @@ calculate_stream_depletions <- function(streams,
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # get areas
+          # get areas of well thiessen and create intersection
           well_voronoi_area <- as.numeric(st_area(wells_intersection))
           closest_voronoi_intersection <- st_intersection(st_geometry(closest_voronoi),
                                                           st_geometry(wells_intersection))
           closest_voronoi_intersection <- st_sf(closest_voronoi_intersection)
           st_geometry(closest_voronoi_intersection) <- 'geometry'
-          closest_voronoi_intersection$key <- closest_voronoi$key
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # which keys to assign
+          keys_indices <- st_intersects(closest_voronoi,
+                                        wells_intersection)
+          rm <- which(lengths(keys_indices) == 0)
+          if(length(rm) > 0){
+            keys_indices <- c(1:length(keys_indices))[-c(rm)]
+          } else {
+            keys_indices <- c(1:length(keys_indices))
+          }
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # get areas of intersected thiessen
+          closest_voronoi_intersection$key <- closest_voronoi$key[keys_indices]
           voronoi_intersected_areas <- as.numeric(st_area(closest_voronoi_intersection))
           #-------------------------------------------------------------------------------
           
