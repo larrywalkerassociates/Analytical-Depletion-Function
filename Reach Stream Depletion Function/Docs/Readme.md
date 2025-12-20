@@ -86,7 +86,7 @@ column in that point set. The ID describes what reach each point belongs
 to. IDs must be sequentially numeric (i.e. 1,2,3,4…). <br/> <br/>
 <b><font size = "3">wells</font></b>: *sf object*, series of points that
 represent the wells in the domain. <br/> <br/>
-<b><font size = "3">wells_id_key</font></b>: *char* default *NULL*,
+<b><font size = "3">well_id_key</font></b>: *char* default *NULL*,
 describes a column in that point set where an ID can be found in the
 wells data. The ID describes what reach each point belongs to. IDs must
 be sequentially numeric (i.e. 1,2,3,4…). <br/> <br/>

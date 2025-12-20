@@ -16,7 +16,7 @@ calculate_stream_depletions <- function(streams,
                                         streams_are_points = FALSE,
                                         stream_id_key = NULL,
                                         wells,
-                                        wells_id_key = NULL,
+                                        well_id_key = NULL,
                                         pumping,
                                         model_grid = NULL,
                                         grid_layer_key = 'lay',
@@ -756,7 +756,7 @@ calculate_stream_depletions <- function(streams,
     
     #-------------------------------------------------------------------------------
     # formatting output
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     wells$ImpLMet <- as.vector(impacted_length)
     out <- cbind(w_index, impacted_points)
     colnames(out) <- c('wellN',
@@ -904,7 +904,7 @@ calculate_stream_depletions <- function(streams,
     
     #-------------------------------------------------------------------------------
     # formatting output
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     wells$ImpLMet <- as.vector(impacted_length)
     out <- cbind(w_index, impacted_points)
     colnames(out) <- c('wellN',
@@ -1012,7 +1012,7 @@ calculate_stream_depletions <- function(streams,
     
     #-------------------------------------------------------------------------------
     # formatting output
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     wells$ImpLMet <- as.vector(impacted_length)
     out <- cbind(w_index, impacted_points)
     colnames(out) <- c('wellN',
@@ -1091,7 +1091,7 @@ calculate_stream_depletions <- function(streams,
     
     #-------------------------------------------------------------------------------
     # formatting output
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     wells$ImpLMet <- as.vector(impacted_length)
     out <- cbind(w_index, impacted_points)
     colnames(out) <- c('wellN',
@@ -1418,13 +1418,13 @@ calculate_stream_depletions <- function(streams,
     wm <- which(fractions_of_depletions == max_dep, arr.ind = TRUE)
     
     reach_max_dep <- reaches[wm]
-    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],wells_id_key])))
+    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],well_id_key])))
     #-------------------------------------------------------------------------------
     
 
     #-------------------------------------------------------------------------------
     # format writeout pt 2
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     fractions_of_depletions <- cbind(w_index, fractions_of_depletions)
     fractions_of_depletions <- as.data.frame(fractions_of_depletions)
     colnames(fractions_of_depletions) <- c('wellN',
@@ -1770,13 +1770,13 @@ calculate_stream_depletions <- function(streams,
     wm <- which(fractions_of_depletions == max_dep, arr.ind = TRUE)
     
     reach_max_dep <- reaches[wm]
-    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],wells_id_key])))
+    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],well_id_key])))
     #-------------------------------------------------------------------------------
     
     
     #-------------------------------------------------------------------------------
     # format writeout pt 2
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     fractions_of_depletions <- cbind(w_index, fractions_of_depletions)
     fractions_of_depletions <- as.data.frame(fractions_of_depletions)
     colnames(fractions_of_depletions) <- c('wellN',
@@ -2070,13 +2070,13 @@ calculate_stream_depletions <- function(streams,
     wm <- which(fractions_of_depletions == max_dep, arr.ind = TRUE)
     
     reach_max_dep <- reaches[wm]
-    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],wells_id_key])))
+    well_max_dep <- as.vector(unlist(st_drop_geometry(wells[wm[,1],well_id_key])))
     #-------------------------------------------------------------------------------
     
     
     #-------------------------------------------------------------------------------
     # format writeout pt 2
-    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+    w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
     fractions_of_depletions <- cbind(w_index, fractions_of_depletions)
     fractions_of_depletions <- as.data.frame(fractions_of_depletions)
     colnames(fractions_of_depletions) <- c('wellN',
@@ -4098,7 +4098,7 @@ calculate_stream_depletions <- function(streams,
                                                    'Web',
                                                    'Web Squared')){
       
-      w_index <- as.vector(unlist(st_drop_geometry(wells[ ,wells_id_key])))
+      w_index <- as.vector(unlist(st_drop_geometry(wells[ ,well_id_key])))
       closest_points_per_segment <- find_closest_points_per_segment(wells = wells,
                                                                     stream_points_geometry = stream_points_geometry,
                                                                     stream_id_key = stream_id_key)
@@ -4762,8 +4762,8 @@ calculate_stream_depletions <- function(streams,
     
     #-------------------------------------------------------------------------------
     # find impacted points by proximity criteria
-    if(is.null(wells_id_key) == TRUE){
-      wells_id_key <- 'ID'
+    if(is.null(well_id_key) == TRUE){
+      well_id_key <- 'ID'
       wells$ID <- c(1:nrow(wells))
     } else {}
     
