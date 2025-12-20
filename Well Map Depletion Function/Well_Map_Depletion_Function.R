@@ -46,7 +46,6 @@ map_stream_depletions <- function(streams,
                                   lambda_key = NULL,
                                   prec = 80)
 {
-
   ############################################################################################
   ######################################### HELPER FUNCTIONS #################################
   ############################################################################################
@@ -3342,7 +3341,6 @@ map_stream_depletions <- function(streams,
     #-------------------------------------------------------------------------------
     # if wells were not passed as an argument make a consistent grid out of them
     if(is.null(wells) == TRUE){
-      
       #-------------------------------------------------------------------------------
       # log message
       if(is.null(well_crs) == TRUE){
@@ -3411,7 +3409,6 @@ map_stream_depletions <- function(streams,
                                 paste0('Number of columns in well grid = ', ncol_well_grid)),
                  con = log_file)
       #-------------------------------------------------------------------------------
-      
 
       #-------------------------------------------------------------------------------
       proj_output <- ensure_projections(projection_object = streams,
@@ -3895,7 +3892,7 @@ map_stream_depletions <- function(streams,
                 custom_sdf_per_well))
   }
   #-------------------------------------------------------------------------------
-  
+
   
   
 
@@ -3905,7 +3902,7 @@ map_stream_depletions <- function(streams,
   
   
   
-  
+
   ############################################################################################
   ######################################### RUN FUNCTIONS ####################################
   ############################################################################################
@@ -4277,7 +4274,6 @@ map_stream_depletions <- function(streams,
     proj_output <- ensure_projections(projection_object = streams,
                                       geometry_list = list(model_grid))
     model_grid <- proj_output[[1]]
-    
     if(!grid_layer_key %in% colnames(model_grid) |
        !grid_stor_coef_key %in% colnames(model_grid) |
        !grid_transmissivity_key %in% colnames(model_grid)){
@@ -4389,7 +4385,7 @@ map_stream_depletions <- function(streams,
     }
   }  
   #-------------------------------------------------------------------------------
-  
+
   
   
   
