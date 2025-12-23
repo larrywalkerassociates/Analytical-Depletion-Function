@@ -1,0 +1,27 @@
+#### Opening program to calculate stream depletion
+
+#### Calculating Impacted Segments For Each Well
+Well segment proximity criteria:  Local Area
+Streams not preprocessed to points ... converting to points
+Number of unique stream segments:  86
+Mean | Median number of points per segment:  31 | 19
+Mean | Median impacted segment length in meters:  128664|128792
+Found impacted segments without error
+Moving to next step ...
+
+#### Apportioning Depletions For Each Well
+Well apportionment criteria:  Inverse Distance
+For each well, finding the closest point on the reaches that it impacts
+Max | Mean | Median number of reaches effected per well:  77 | 52 | 51
+Max apportioned depletion fraction:  0.7628 for reach 5 for well 74
+Apportioned depletions without error
+Moving to next step ...
+
+#### Calculating Depletions For Each Well
+Using analytical model:  Glover
+Mean | Median start of stream depletions (timestep):  1.03  |  1
+Mean | Median final depletions (meters^3): 14.6473 | 12.6347 at timestep (t_final) 595
+Max final depletions (meters^3): 92.254 at timestep (t_final) 595 for reach 11
+Mean | Median Jenkins SDF 60961.4265 | 61196.5406
+Calculated depletions without error
+Finished ...
