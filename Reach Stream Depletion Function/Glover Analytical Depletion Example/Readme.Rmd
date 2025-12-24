@@ -310,7 +310,9 @@ calculate_stream_depletions(streams = Shasta_Streams,
                             analytical_model = 'glover',
                             data_out_dir = file.path(getwd(),'Output'),
                             diag_out_dir = file.path(getwd(),'Output'),
-                            stor_coef_key = 'Stor', # where to find storage coef in well set
+                            suppress_loading_bar = TRUE,
+                            suppress_console_messages = TRUE,
+                            well_stor_coef_key = 'Stor', # where to find storage coef in well set
                             well_transmissivity_key = 'Tr') # where to find transmissivity in well set
 ```
 <br/>

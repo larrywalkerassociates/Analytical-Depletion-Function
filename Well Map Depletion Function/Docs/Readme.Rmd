@@ -82,7 +82,7 @@ This solution is identical to the Hantush (1965) solution in the special case th
 <b><font size = "3">well_grid_ext</font></b>: *vector* default *NULL*, if no explicitly defined wells are passed to the function then this argument, in conjunction with *well_grid_cellsize*, defines a regular grid where the center of each grid cell will be a well. Argument must be c(xmin,ymin,xmax,ymax).
 <br/>
 <br/>
-<b><font size = "3">well_grid_cellsize</font></b>: *numeric* default *NULL*, describes the edge length of each gridcell in whatever coordinate system is passed to *well_crs*. For example, if units of the crs are meters passing 1000 to this argument would entail gridcells where each size is 1000m.
+<b><font size = "3">well_grid_cellsize</font></b>: *numeric* default *NULL*, describes the edge length of each gridcell in whatever coordinate system is passed to *well_crs*. For example, if units of the crs are meters passing 1000 to this argument would entail gridcells where each size is 1000m. The passed *well_grid_ext* may not be divisible by the passed cellsize, and in this case the program will find the closest dimensions that fit completely within the bounding box. 
 <br/>
 <br/>
 <b><font size = "3">well_crs</font></b>: *char* default *NULL*, describes the crs of the grid extent. Only necessary if no argument is passed to *wells* and the extent and cellsize are being used instead.

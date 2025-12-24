@@ -95,13 +95,15 @@ c(xmin,ymin,xmax,ymax). <br/> <br/>
 *NULL*, describes the edge length of each gridcell in whatever
 coordinate system is passed to *well_crs*. For example, if units of the
 crs are meters passing 1000 to this argument would entail gridcells
-where each size is 1000m. <br/> <br/>
-<b><font size = "3">well_crs</font></b>: *char* default *NULL*,
-describes the crs of the grid extent. Only necessary if no argument is
-passed to *wells* and the extent and cellsize are being used instead.
-<br/> <br/> <b><font size = "3">custom_sdf_time</font></b>: *numeric*
-default *NULL*, describes whether to find the time when the depletions
-in reaches ‘r’ equal the pumping in well ‘w’ multiplied by
+where each size is 1000m. The passed *well_grid_ext* may not be
+divisible by the passed cellsize, and in this case the program will find
+the closest dimensions that fit completely within the bounding box.
+<br/> <br/> <b><font size = "3">well_crs</font></b>: *char* default
+*NULL*, describes the crs of the grid extent. Only necessary if no
+argument is passed to *wells* and the extent and cellsize are being used
+instead. <br/> <br/> <b><font size = "3">custom_sdf_time</font></b>:
+*numeric* default *NULL*, describes whether to find the time when the
+depletions in reaches ‘r’ equal the pumping in well ‘w’ multiplied by
 *custom_sdf_time*. Accepts any number, but recommended to chose between
 0.1 and 0.9. If set to *NULL* no calculations are done. If time cannot
 be determined within *n_sdf_covergence_tries* -9999 is returned for that
