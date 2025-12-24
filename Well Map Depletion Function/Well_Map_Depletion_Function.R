@@ -376,7 +376,7 @@ map_stream_depletions <- function(streams,
                                           distance = distance,
                                           stor_coef = stor_coef,
                                           transmissivity = transmissivity,
-                                          fracs = fracs,
+                                          fracs,
                                           lambda = NULL,
                                           leakance = NULL)
   {
@@ -471,11 +471,13 @@ map_stream_depletions <- function(streams,
               mod <- mod - mod_subtract
               mod_subtract <- mod/10
               history <- c()
-            }
-            
-            if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
-               paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
+            } else if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
+                      paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
               mod <- mod*2
+              mod_subtract <- mod/10
+              history <- c()
+            } else {
+              mod <- mod * 0.9
               mod_subtract <- mod/10
               history <- c()
             }
@@ -604,11 +606,13 @@ map_stream_depletions <- function(streams,
               mod <- mod - mod_subtract
               mod_subtract <- mod/10
               history <- c()
-            }
-            
-            if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
-               paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
+            } else if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
+                      paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
               mod <- mod*2
+              mod_subtract <- mod/10
+              history <- c()
+            } else {
+              mod <- mod * 0.9
               mod_subtract <- mod/10
               history <- c()
             }
@@ -729,11 +733,13 @@ map_stream_depletions <- function(streams,
               mod <- mod - mod_subtract
               mod_subtract <- mod/10
               history <- c()
-            }
-            
-            if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
-               paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
+            } else if(paste(recent_history, collapse = '') == paste(rep(c('-'),10), collapse = '')|
+                      paste(recent_history, collapse = '') == paste(rep(c('+'),10), collapse = '')){
               mod <- mod*2
+              mod_subtract <- mod/10
+              history <- c()
+            } else {
+              mod <- mod * 0.9
               mod_subtract <- mod/10
               history <- c()
             }
