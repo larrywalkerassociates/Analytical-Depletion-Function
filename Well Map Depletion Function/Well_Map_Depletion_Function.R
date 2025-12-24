@@ -3426,6 +3426,20 @@ map_stream_depletions <- function(streams,
       
       
       #-------------------------------------------------------------------------------
+      # using the dimensions of st_make_grid() to choose
+      # the nearest cellsize that fits completely within the bounding box
+      wells <- st_make_grid(df,
+                            n = c(ncol_well_grid, nrow_well_grid))
+      wells <- st_centroid(wells)
+      wells <- st_sf(wells)
+      st_geometry(wells) <- 'geometry'
+      coords <- st_coordinates(wells)
+      ncol_well_grid <- rle(coords[,2])$lengths[1]
+      nrow_well_grid <- nrow(wells)/ncol_well_grid
+      #-------------------------------------------------------------------------------
+      
+      
+      #-------------------------------------------------------------------------------
       # log message
       writeLines(text = sprintf('%s',
                                 paste0('Number of rows in well grid = ', nrow_well_grid)),
