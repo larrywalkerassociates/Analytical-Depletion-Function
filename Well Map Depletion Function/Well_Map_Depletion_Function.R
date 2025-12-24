@@ -3400,14 +3400,14 @@ map_stream_depletions <- function(streams,
       #-------------------------------------------------------------------------------
       x_coords <- c(as.numeric(well_grid_ext[1]),
                     as.numeric(well_grid_ext[1]),
-                    as.numeric(well_grid_ext[2]),
-                    as.numeric(well_grid_ext[2]),
-                    as.numeric(well_grid_ext[1]))
-      y_coords <- c(as.numeric(well_grid_ext[3]),
-                    as.numeric(well_grid_ext[4]),
-                    as.numeric(well_grid_ext[4]),
                     as.numeric(well_grid_ext[3]),
-                    as.numeric(well_grid_ext[3]))
+                    as.numeric(well_grid_ext[3]),
+                    as.numeric(well_grid_ext[1]))
+      y_coords <- c(as.numeric(well_grid_ext[2]),
+                    as.numeric(well_grid_ext[4]),
+                    as.numeric(well_grid_ext[4]),
+                    as.numeric(well_grid_ext[2]),
+                    as.numeric(well_grid_ext[2]))
       df$geometry[1] <- st_polygon(list(cbind(x_coords,
                                               y_coords)))
       #-------------------------------------------------------------------------------
