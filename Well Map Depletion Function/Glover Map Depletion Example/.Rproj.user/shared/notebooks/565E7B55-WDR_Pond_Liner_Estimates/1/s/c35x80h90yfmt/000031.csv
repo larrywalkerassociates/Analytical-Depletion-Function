@@ -1,0 +1,2 @@
+"0","plot(st_geometry(allstates),"
+"0","     add = T, border = 'gray80', col = 'gray95')"

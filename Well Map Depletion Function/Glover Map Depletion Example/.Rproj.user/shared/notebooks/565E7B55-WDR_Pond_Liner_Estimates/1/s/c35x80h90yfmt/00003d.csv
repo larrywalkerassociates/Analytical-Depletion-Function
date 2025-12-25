@@ -1,0 +1,7 @@
+"0","text(x = par('usr')[1] - x_range*0.01,"
+"0","     y = par('usr')[4] + y_range*0.04,"
+"0","     pos = 4,"
+"0","     labels = 'Data supplied by Formation Environmental', "
+"0","     cex = 1.1,"
+"0","     col = 'gray40',"
+"0","     xpd = NA)"

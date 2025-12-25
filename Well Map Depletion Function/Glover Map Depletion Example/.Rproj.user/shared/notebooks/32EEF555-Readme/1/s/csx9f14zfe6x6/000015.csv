@@ -1,0 +1,8 @@
+"0","legend(x = 'topleft',"
+"0","       lwd = c(3,2,2),"
+"0","       lty = c(1,1,2),"
+"0","       pch = c(NA,NA,NA),"
+"0","       col = c('black','dodgerblue4','black'),"
+"0","       legend = c('Shasta Groundwater Basin',"
+"0","                  'Main Streams',"
+"0","                  'Example Influence Radius'))"

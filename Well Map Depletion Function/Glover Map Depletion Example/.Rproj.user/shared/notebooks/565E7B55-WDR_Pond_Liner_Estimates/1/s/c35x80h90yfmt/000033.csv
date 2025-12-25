@@ -1,0 +1,2 @@
+"0","plot(st_geometry(allstates[allstates$NAME == 'California',]),"
+"0","     add = T, border = 'gray40', col = 'gray97')"

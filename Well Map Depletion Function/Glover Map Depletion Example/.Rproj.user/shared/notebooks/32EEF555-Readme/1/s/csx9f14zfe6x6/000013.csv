@@ -1,0 +1,3 @@
+"0","p <- st_point(c((bb['xmax'] + bb['xmin'])/2,"
+"0","                (bb['ymax'] + bb['ymin'])/2)) %>% st_sfc(crs = st_crs(Shasta_B118))"
+"0","plot(st_buffer(p, influence_radius), add = TRUE, lty = 2, border = 'black')"

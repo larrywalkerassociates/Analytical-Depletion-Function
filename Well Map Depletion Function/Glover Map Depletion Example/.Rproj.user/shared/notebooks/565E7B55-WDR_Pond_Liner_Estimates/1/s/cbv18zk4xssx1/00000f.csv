@@ -1,0 +1,8 @@
+"0","# ------------------------------------------------------------------------------------------------"
+"0","# get the county"
+"0","county <- list()"
+"0","for(i in 1:nrow(non15_used)){"
+"0","  int <- st_intersection(non15_used[i, ], ca_counties)"
+"0","  nam <- int$NAME[1]"
+"0","  county[[i]] <- nam"
+"0","}"

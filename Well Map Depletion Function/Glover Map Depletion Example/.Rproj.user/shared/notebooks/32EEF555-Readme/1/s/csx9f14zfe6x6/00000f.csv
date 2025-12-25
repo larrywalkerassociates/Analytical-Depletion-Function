@@ -1,0 +1,2 @@
+"0","bb <- st_bbox(Shasta_B118)"
+"0","plot(st_geometry(Shasta_B118), lwd = 3)"

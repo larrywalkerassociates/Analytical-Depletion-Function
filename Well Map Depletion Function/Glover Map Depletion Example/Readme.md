@@ -22,7 +22,10 @@ ensures that each well has 1 \>= segment associated with it. <br/> <br/>
 differing projections, it is best if they <br/>     are projected
 beforehand.<br/> 2) To avoid depletions predicted for inappropriate
 locations, please pre-process streams <br/>     so that they are only
-within the groundwater basin <br/>
+within the groundwater basin <br/> 3) The author is aware that the
+Shasta groundwater basin has complex geology, which is not matched
+by<br/>     the aquifer properties assigned below. This is simply an
+example.<br/>
 
 ``` r
 Shasta_Streams <- st_read(file.path(here::here(),
@@ -37,22 +40,6 @@ Shasta_B118 <- st_read(file.path(here::here(),
 Shasta_B118 <- st_transform(Shasta_B118, 3310)
 Shasta_Streams <- st_intersection(Shasta_Streams, Shasta_B118$geometry)
 ```
-
-``` r
-bb <- st_bbox(Shasta_B118)
-set.seed(1)
-x <- runif(n = 300, min = bb['xmin'], max = bb['xmax'])
-y <- runif(n = 300, min = bb['ymin'], max = bb['ymax'])
-random_wells <- cbind(x,y) %>% as.data.frame()
-random_wells <- st_as_sf(random_wells,
-                         coords = c('x','y'),
-                         crs = st_crs(Shasta_B118),
-                         na.fail = FALSE)
-random_wells <- st_intersection(random_wells,
-                                Shasta_B118$geometry)
-```
-
-![](Readme_files/figure-gfm/randomwellplot-1.png)<!-- -->
 
 <br/> <br/> <br/> <br/> <br/> <br/>
 
@@ -87,10 +74,7 @@ influence_radius <- max(min_distances)*2
 ```
 
 <br/> <br/> For Shasta the influence radius is calculated <br/> here as
-20 kilometers. <br/> The below visualization shows wells, with their
-sized scaled by the length of river <br/> that they effect relative to
-the maximum length. <br/> As expected, those at the periphery effect
-less reach. <br/>
+20 kilometers. <br/>
 
 ![](Readme_files/figure-gfm/localplot-1.png)<!-- --> <br/> The influence
 radius calculated here is nearly equivalent to the ‘whole domain’
@@ -108,14 +92,14 @@ analytical solutions such as the Glover-Balmer solution (1954) take
 distance as an argument. And so even in the extreme case that there is
 one stream and one well separated by an inordinate distance, say 100km,
 while all of the wells pumping will be assigned to the stream the
-distance is such that the depletion fraction will never be noticeable.
-<br/> <br/> This is not to say that the proximity criteria arguments are
-moot, as small errors can compound if there are many streams and many
-wells each with slight mis-assignments, but rather that the variance in
-model scenarios is likely to be the volume of depletion on an individual
-reach and not the identification of the most impacted reach. This
-conclusion is corroborated by figure 4 of Zipper et al. (2019). <br/>
-<br/> <br/> <br/> <br/> <br/>
+distance is such that the depletion fraction wouldn’t be noticeable on a
+human timescale. <br/> <br/> This is not to say that the proximity
+criteria arguments are moot, as small errors can compound if there are
+many streams and many wells each with slight mis-assignments, but rather
+that the variance in model scenarios is likely to be the volume of
+depletion on an individual reach and not the identification of the most
+impacted reach. This conclusion is corroborated by figure 4 of Zipper et
+al. (2019). <br/> <br/> <br/> <br/> <br/> <br/>
 
 # Depletion Apportionment Criteria
 
@@ -166,123 +150,110 @@ aquifer, described also as the thickness of the aquifer multiplied by
 its conductivity $(bK)$ <br/>          $t [T]=$ the time at which the
 equation is to be evaluated<br/>
 
-<font size = '4'>**Important**</font><br/> While technically any units
-can be used, if the spatial projection of the data is one typically used
-(such as NAD83) the length units when distances are calculated will be
-in meters. Therefore the user should convert all units into metric
-beforehand (such as gallons per day to cubic meters per day). <br/>
-<br/>
+<font size = '4'>**Important Note**</font><br/> While technically any
+units can be used, if the spatial projection of the data is one
+typically used (such as NAD83) the length units when distances are
+calculated will be in meters. Therefore the user should convert all
+units into metric beforehand (such as gallons per day to cubic meters
+per day). <br/> <br/>
 
 ### Example
 
 For our example we’ll just assign some arbitrary numbers for
-storativity, transmissivity, and pumping. The exact values aren’t
-important at this moment, but demonstrating the correct format for them
-is.
+storativity, and transmissivity. The exact values aren’t important at
+this moment, but demonstrating the correct format for them is. Pumping
+will just be a vector of years to evaulate the function at. Because the
+numbers we assigned in this example for transmissivity represent
+$\frac{L^2}{\text{year}}$ the timesteps passed to pumping also must
+represent years
 
 ``` r
-# giving each well some random aquifer parameters
-random_wells <- random_wells[,-c(2,3)]
-
-random_wells$Stor <- runif(n = nrow(random_wells),
-                           min = 0.02, max = 0.1)
-random_wells$Tr <- runif(n = nrow(random_wells),
-                         min = 50, max = 200)
-
-
-# assign pumping to each well
-# where each row is a well, each column is a timestep, and each value
-# in a row, column pair is the pumping rate at that timestep for that well
-pumping <- matrix(runif(n = nrow(random_wells),
-                        min = 100,
-                        max = 300),
-                  nrow = nrow(random_wells),
-                  ncol = 250,byrow = TRUE)
-pumping <- cbind(pumping, matrix(0,
-                                 nrow = nrow(random_wells),
-                                 ncol = 115))
-pumping <- cbind(pumping, matrix(runif(n = nrow(random_wells),
-                                       min = 100,
-                                       max = 300),
-                                 nrow = nrow(random_wells),
-                                 ncol = 115,byrow = TRUE))
-pumping <- cbind(pumping, matrix(0,
-                                 nrow = nrow(random_wells),
-                                 ncol = 115))
+r <- rast(ncols = 37,
+          nrows = 52,
+          xmin = st_bbox(Shasta_B118)['xmin'], xmax = st_bbox(Shasta_B118)['xmax'],
+          ymin = st_bbox(Shasta_B118)['ymin'], ymax = st_bbox(Shasta_B118)['ymax'],
+          crs = "EPSG:3310")
+values(r) <- rev(model_grid$Tr)
+plot(r, main = 'Hypothetical Transmissivity')
+plot(st_geometry(Shasta_B118), add = T, lwd = 3)
 ```
 
-<br/> <br/> **Pumping Structure**<br/> Each row is a well<br/> Each
-column is a timestep<br/> Each row,column combination contains a pumping
-rate<br/> <br/> If the timestep is days then each row,column combination
-will have the number of $L^3$ pumped in that day.<br/> For visibility
-only the first 5 columns are shown here.
-
-    ##            V1       V2       V3       V4       V5
-    ##         <num>    <num>    <num>    <num>    <num>
-    ##   1: 151.7205 190.9198 248.1953 298.1320 166.4410
-    ##   2: 299.9861 205.5564 126.7469 187.7080 224.1588
-    ##   3: 125.1458 224.8729 160.4863 147.9274 171.7260
-    ##   4: 286.1184 192.5461 272.1382 162.4073 141.6078
-    ##   5: 204.4923 257.8463 238.9507 113.3152 103.5915
-    ##  ---                                             
-    ## 134: 200.9010 215.6965 267.8608 230.8890 288.9057
-    ## 135: 127.5461 131.9570 297.7667 179.7291 137.5824
-    ## 136: 218.4627 152.4864 276.7505 137.5379 197.7734
-    ## 137: 200.3897 185.6694 222.0032 285.2226 148.0247
-    ## 138: 154.5561 137.6327 145.1524 112.3941 111.9800
-
-<br/> <br/> **Well Structure**<br/> Wells have a column for aquifer
-properties.
-
-    ##                        geometry       Stor        Tr
-    ##                     <sfc_POINT>      <num>     <num>
-    ##   1: POINT (-202962.2 399323.9) 0.08514014  62.95931
-    ##   2: POINT (-190580.2 397712.5) 0.09430218  56.39857
-    ##   3:   POINT (-199715.1 415978) 0.03179848 102.31112
-    ##   4: POINT (-200884.9 377307.2) 0.07998573 131.35040
-    ##   5:   POINT (-198746.8 417427) 0.09805259 141.41913
-    ##  ---                                                
-    ## 134:   POINT (-191609.9 407322) 0.02406169 196.05900
-    ## 135: POINT (-212039.1 407595.1) 0.07719730 172.07087
-    ## 136: POINT (-205395.9 416850.5) 0.04381556  83.56516
-    ## 137: POINT (-198952.8 407419.2) 0.04267818 123.46135
-    ## 138:   POINT (-189803.1 397138) 0.08639017  51.70103
+![](Readme_files/figure-gfm/assignvals-1.png)<!-- -->
 
 ``` r
-calculate_stream_depletions(streams = Shasta_Streams,
-                            wells = random_wells,
-                            pumping = pumping,
-                            influence_radius = influence_radius, # influence radius calculated above
-                            proximity_criteria = 'local area',
-                            apportionment_criteria = 'inverse distance',
-                            analytical_model = 'glover',
-                            data_out_dir = file.path(getwd(),'Output'),
-                            diag_out_dir = file.path(getwd(),'Output'),
-                            stor_coef_key = 'Stor', # where to find storage coef in well set
-                            well_transmissivity_key = 'Tr') # where to find transmissivity in well set
+r <- rast(ncols = 37,
+          nrows = 52,
+          xmin = st_bbox(Shasta_B118)['xmin'], xmax = st_bbox(Shasta_B118)['xmax'],
+          ymin = st_bbox(Shasta_B118)['ymin'], ymax = st_bbox(Shasta_B118)['ymax'],
+          crs = "EPSG:3310")
+values(r) <- rev(model_grid$Stor)
+plot(r, main = 'Hypothetical Storativity')
+plot(st_geometry(Shasta_B118), add = T, lwd = 3)
+```
+
+![](Readme_files/figure-gfm/assignvals-2.png)<!-- -->
+
+``` r
+pumping <- c(1,2,10,50) # years after which to evaluate the functions
+```
+
+``` r
+map_stream_depletions(streams = Shasta_Streams,
+                      well_grid_ext = st_bbox(Shasta_B118),
+                      well_grid_cellsize = 500,
+                      well_layer = 1,
+                      well_crs = 3310,
+                      model_grid = model_grid,
+                      custom_sdf_time = 0.5, # time where depletions equal half pumping rate
+                      pumping = pumping,
+                      influence_radius = influence_radius, # influence radius calculated above
+                      proximity_criteria = 'local area',
+                      apportionment_criteria = 'inverse distance',
+                      analytical_model = 'glover',
+                      data_out_dir = file.path(getwd(),'Output'),
+                      diag_out_dir = file.path(getwd(),'Output'),
+                      suppress_loading_bar = TRUE,
+                      suppress_console_messages = TRUE,
+                      grid_layer_key = 'lay',
+                      grid_stor_coef_key = 'Stor', # where to find storage coef in well set
+                      grid_transmissivity_key = 'Tr') # where to find transmissivity in well set
 ```
 
 <br/> <br/> <br/> <br/> <br/> <br/>
 
 # Results
 
-<br/> In our example we can look to a random reach to see how our
-intermittent pumping effected depletions.<br/> <br/> Of note is that
-when pumping is at 0 depletions are still accumulating from pumping,
-indicating both a delayed response (as expected) from pumping and that
-the break from pumping was not long enough to reduce depletions.<br/>
-![](Readme_files/figure-gfm/finalexampleplot-1.png)<!-- -->
+<br/> In our example we can look to see when the depletions caused by
+each well equal to 0.5 percent of its pumping rate. This should normally
+be masked by the user to only within the groundwater basin but is not
+here for demonstration purposes that all wells within the domain are
+simulated.<br/> <br/> As expected, this time is lowest closest to
+streams, and where there is a combination of high transmissivity and low
+storativity (second band from the top).<br/> <br/>
 
-<br/> <br/> <br/> As aquifer properties are assigned randomly, we also
-expect a random assortment in the spatial variability of our depletions,
-with in general streams with a large number of proximal wells, or a
-small number of extremely proximal wells, affected the most. <br/> <br/>
-Due to the random nature of our well location generation, there are some
-that are in unrealistic locations on top of the streams themselves.
-However, the important thing here is demonstrating that the method
-works, as again the numbers are randomly assigned and come with no
-context as to whether the absolute volume of depletions are large in
-relation to the flows in the rivers.<br/> <br/> Here streams are colored
-by how much of the global maximum (324 \[ $\frac{L^3}{T}$ \]) depletions
-they experienced .
-![](Readme_files/figure-gfm/finalexampleplot2-1.png)<!-- -->
+<font size = '4'>**Important Note**</font><br/>
+
+As is stated in the assumptions documentation, analytical solutions to
+stream depletion assume that the aquifer extends equally in all
+directions. Therefore when wells are simulated against the groundwater
+basin boundaries, these equations likely underestimate depletions. This
+is due to the fact that the cone of depression of the well can only
+expand in one direction, away from the boundary and towards the interior
+of the basin where the streams are located. To match the pumping rate
+with only half of the aquifer area to take from, the cone of depression
+must expand more quickly, and this dynamic is simply not able to be
+simulated by analytical solutions.<br/> <br/> It is ultimately up to the
+user to mask areas that are not appropriate. For example, the protrusion
+area around 41000 N and -215000 E it may be appropriate to make a
+disclaimer that this area is underestimated.
+
+![](Readme_files/figure-gfm/tdds-1.png)<!-- -->
+
+<br/> <br/> <br/> Over time, as the cone of depression expands out from
+each well we see that after 50 years nearly every well within the domain
+will be taking grater than or equal to 50% of its pumped water from
+stream depletions.<br/> <br/> This fits well within the statements of
+Barlow and Leake (2012) and numerous other publications who state that
+pumping from a well must eventually come from either a reduction in
+discharges or an increases in reacharges to the watershed.
+![](Readme_files/figure-gfm/expandingCone-1.png)<!-- -->![](Readme_files/figure-gfm/expandingCone-2.png)<!-- -->![](Readme_files/figure-gfm/expandingCone-3.png)<!-- -->![](Readme_files/figure-gfm/expandingCone-4.png)<!-- -->

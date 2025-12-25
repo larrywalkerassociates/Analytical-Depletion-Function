@@ -1,0 +1,7 @@
+"0","text(x = par('usr')[1] - x_range*0.01,"
+"0","     y = par('usr')[4] + y_range*0.01,"
+"0","     pos = 4,"
+"0","     labels = bquote({}^'*'~'Object size not to scale, for visualization purposes only'), "
+"0","     cex = 0.7,"
+"0","     col = 'gray40',"
+"0","     xpd = NA)"

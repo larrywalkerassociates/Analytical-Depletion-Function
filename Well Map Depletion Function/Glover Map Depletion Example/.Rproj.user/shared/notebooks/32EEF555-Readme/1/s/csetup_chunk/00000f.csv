@@ -1,0 +1,4 @@
+"0","## IMPORTANT "
+"0","## POINT THIS TO YOUR DIRECTORY"
+"0","knitr::opts_knit$set(echo = TRUE,"
+"0","                      root.dir = getwd())"

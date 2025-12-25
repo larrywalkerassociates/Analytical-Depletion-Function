@@ -1,0 +1,184 @@
+---
+title: "Readme"
+author: "Christopher Dory"
+date: "2025-12-16"
+output: github_document
+---
+```{r setup, include=FALSE,  message = FALSE, error = FALSE, warning = FALSE}
+## IMPORTANT 
+## POINT THIS TO YOUR DIRECTORY
+knitr::opts_knit$set(echo = TRUE,
+                      root.dir = getwd())
+```
+
+```{r setup2, include=FALSE, message = FALSE, error = FALSE, warning = FALSE}
+#===========================================================================================
+# Requirements Load
+#===========================================================================================
+
+options(scipen = 100)
+```
+
+# Assumptions
+
+Analytical solutions to streamflow depletion can be implemented more quickly than numerical models based on software such as MODFLOW because they represent simplified representations of reality and bake in assumptions, depending on the equation used, such as constant stream stage, small drawdown compared to aquifer thickness, simplified stream geometries, homogenous and isotropic aquifers, etc. Despite these simplifications, these equations nonetheless provide "insight into the several factors that affect streamflow depletion and can be used as an initial estimate of the effects of a particular well on a nearby stream" and are "used by a number of states as the basis for making water-management regulatory decisions"(Barlow and Leake, 2012).<br/>
+<br/>
+Furthermore, to incorporate variable pumping rates this program uses the principle of linear-superposition, which assumes that the aquifer and stream respond linearly to groundwater pumping (e.g. 2x higher pumping will result in 2x higher depletion all other things being equal). An example where this would not be appropriate is if large drawdowns are induced, changing the transmissivity of the aquifer and thusly the response to pumping.<br/>
+<br/>
+It is ultimately on the user to determine whether these assumptions in combination with potential unaccounted for effects of aquifer heterogeneity and boundary geometries are appropriate for their use case. For in depth examples see Barlow and Leake (2012).<br/>
+
+### Glover Solution
+
+The assumptions below, taken and adapted from Barlow and Leake (2012), cause the Glover (1954) solution to produce the highest estimates of streamflow depletion of the models implemented in this program.<br/>
+<br/>
+<b>1)</b>&nbsp;&nbsp;&nbsp;&nbsp;Aquifer is homogenous, isotropic, and extends to infinity away from the stream<br/>
+<br/>
+<b>2)</b>&nbsp;&nbsp;&nbsp;&nbsp;Saturated thickness and transmissivity of the aquifer do not change with time.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I.e. aquifer is confined, or unconfined with drawdown<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;small in comparison to saturated thickness.<br/>
+<br/>
+<b>3)</b>&nbsp;&nbsp;&nbsp;&nbsp;Water is released instantaneously from storage<br/>
+<br/>
+<b>4)</b>&nbsp;&nbsp;&nbsp;&nbsp;There is no streambank storage<br/>
+<br/>
+<b>5)</b>&nbsp;&nbsp;&nbsp;&nbsp;Stream fully penetrates aquifer, is infinitely long, is flowing at all times,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;has perfect connection with aquifer, and is straight <br/>
+<br/>
+<b>6)</b>&nbsp;&nbsp;&nbsp;&nbsp;Temperature of aquifer and stream do not change with time.<br/>
+
+### Hantush Solution
+
+The Hantush (1965) solution represents a stream that fully penetrates the aquifer with a resistive layer separating the stream from the aquifer. The assumptions in this solution mirror those expressed above for the Glover (1954) solution. As a result, if the resistivity of the layer between the aquifer and the stream approaches zero the solution collapses to that provided by Glover (1954) (Reeves, 2008).
+
+### Hunt Solution
+
+The Hunt (1999) solution represents a stream that only partially penetrates the aquifer with a resistive layer separating the stream from the aquifer. The assumptions in this solution, aside from those that conflict with the previous sentence, mirror those expressed above for the Glover (1954) solution (Reeves, 2008). As a consequence of a partially penetrating stream with finite width, the Hunt solution additionally assumes that:<br/>
+<br/>
+<b>1)</b>&nbsp;&nbsp;&nbsp;&nbsp;The stream is assumed to be connected with the aquifer at all times<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(i.e. water table never falls below streambed).<br/>
+<br/>
+<b>2)</b>&nbsp;&nbsp;&nbsp;&nbsp;The stream width is small relative to the aquifer width.<br/>
+<br/>
+This solution is identical to the Hantush (1965) solution in the special case that $\lambda = 2\frac{T}{L}$ , though it should be noted that this will run slower than the Hunt (1999) solution in this case due to higher precision numbers being needed.
+<br/>
+<br/>
+<br/>
+<br/>
+
+# Variable documentation
+
+<b><font size = "3">streams</font></b>: *sf object*, series of linestrings describing the streams in the domain.
+<br/>
+<br/>
+<b><font size = "3">streams_are_points</font></b>: *boolean* default *FALSE*, describes whether the streams being passed are linestrings, in which the program will transform them to points for calculations, or whether they are pre-processed by the user to points. An argument of *FALSE* equates to telling the program you are passing linestrings.
+<br/>
+<br/>
+<b><font size = "3">stream_id_key</font></b>: *char* default *NULL*, if streams are already points this argument describes an ID column in that point set. The ID describes what reach each point belongs to. IDs must be sequentially numeric (i.e. 1,2,3,4...).
+<br/>
+<br/>
+<b><font size = "3">wells</font></b>: *sf object* default *NULL*, series of points that represent the wells in the domain.
+<br/>
+<br/>
+<b><font size = "3">well_grid_ext</font></b>: *vector* default *NULL*, if no explicitly defined wells are passed to the function then this argument, in conjunction with *well_grid_cellsize*, defines a regular grid where the center of each grid cell will be a well. Argument must be c(xmin,ymin,xmax,ymax).
+<br/>
+<br/>
+<b><font size = "3">well_grid_cellsize</font></b>: *numeric* default *NULL*, describes the edge length of each gridcell in whatever coordinate system is passed to *well_crs*. For example, if units of the crs are meters passing 1000 to this argument would entail gridcells where each size is 1000m. The passed *well_grid_ext* may not be divisible by the passed cellsize, and in this case the program will find the closest dimensions that fit completely within the bounding box. 
+<br/>
+<br/>
+<b><font size = "3">well_crs</font></b>: *char* default *NULL*, describes the crs of the grid extent. Only necessary if no argument is passed to *wells* and the extent and cellsize are being used instead.
+<br/>
+<br/>
+<b><font size = "3">custom_sdf_time</font></b>: *numeric* default *NULL*, describes whether to find the time when the depletions in reaches 'r' equal the pumping in well 'w' multiplied by *custom_sdf_time*. Accepts any number, but recommended to chose between 0.1 and 0.9. If set to *NULL* no calculations are done. If time cannot be determined within *n_sdf_covergence_tries* -9999 is returned for that well.
+<br/>
+<br/>
+<b><font size = "3">custom_sdf_convergence_threshold</font></b>: *numeric* default *0.01*, describes the margin within which an acceptable answer is found to the descent method of *custom_sdf_time*. For example if this argument is set to 0.01 and *custom_sdf_time* is set to 0.5, then any answer between 0.49 and 0.51 is acceptable.
+<br/>
+<br/>
+<b><font size = "3">n_sdf_convergence_tries</font></b>: *numeric* default *1000*, describes how many times the program should try timesteps to find when the depletions in reaches 'r' equal the pumping in well 'w'.
+<br/>
+<br/>
+<b><font size = "3">pumping</font></b>: *matrix*, a matrix where the number of rows equals the number of wells, and the number of columns equals the number of timesteps. Each row, column pair contains a pumping rate for that timestep. For example, if the timesteps are in days and m[1,1] = 100 this is equivalent to a pumping of 100 units on day 1 for well 1.
+<br/>
+<br/>
+<b><font size = "3">subwatersheds</font></b>: *sf object* default *NULL*, if the proximity criteria is set to 'adjacent' or 'adjacent+expanding' this argument is necessary. It describes what subwatersheds are to be used in the proximity criteria assignment. For each well streams within the subwatershed of the well or adjacent subwatersheds are considered to be effected by the wells pumping.
+<br/>
+<br/>
+<b><font size = "3">influence_radius</font></b>: *numeric* default *NULL*, if the proximity criteria is set to 'local area', 'expanding', or 'adjacent+expanding' this argument is necessary. It describes the radius around each well that they influence. Streams within this radius are considered to be effected by the wells pumping.
+<br/>
+<br/>
+<b><font size = "3">proximity_criteria</font></b>: *char* default *'local area'*, describes what proximity criteria to use when assigning what streams are effected by the pumping of a given well. Can take arguments of *'local area', 'whole domain', 'adjacent', 'adjacent+expanding', 'expanding'*. In this program *expanding* and *local area* are equivalent, however the number passed to *influence_radius* by the user should necessarily be different given what they represent.
+<br/>
+<br/>
+<b><font size = "3">apportionment_criteria</font></b>: *char* default *'inverse distance'*, describes how to assign for each well what fraction of its pumping goes to each stream it effects. The sum of the fractions, no matter the argument passed here, will always total to 1. Accepts *'inverse distance', 'inverse distance squared', 'web', 'web squared', 'thiessen polygon'*.
+<br/>
+<br/>
+<b><font size = "3">geologic_apportionment</font></b>: *boolean* default *FALSE*, describes whether to scale apportionment by the ratio between the transmissivity of the geologic unit of the reach and the geologic unit of the well $\frac{T_{r}}{T_{w}}$. The logic behind this is that a reach in more transmissive units will receive more depletion than those in less transmissive units. For example if two reaches are equidistant from a well, and the reaches are in two different geologic units, they should not receive equal apportionment.
+<br/>
+<br/>
+<b><font size = "3">analytical_model</font></b>: *char* default *'glover'*, describes what analytical model to use for the calculation of stream depletions. Accepts *'glover', 'hunt', 'hantush'*. *'Hunt'* and *'hantush'* models are equivalent under the special case that $\lambda = 2\frac{T}{L}$ according to Reeves (2008).
+<br/>
+<br/>
+<b><font size = "3">data_out_dir</font></b>: *char* default *getwd()*, describes where to place the output data.
+<br/>
+<br/>
+<b><font size = "3">diag_out_dir</font></b>: *char* default *getwd()*, describes where to place the diagnostic data (currently limited to log.txt).
+<br/>
+<br/>
+<b><font size = "3">suppress_loading_bar</font></b>: *boolean* default *TRUE*, describes whether to suppress loading bars in console. Value of *TRUE* does not give loading bars.
+<br/>
+<br/>
+<b><font size = "3">suppress_console_messages</font></b>: *boolean* default *TRUE*, describes whether to supress user messages to console. Value of *TRUE* does not give console messages.
+<br/>
+<br/>
+<b><font size = "3">well_stor_coef_key</font></b>: *char* default *'Stor'*, describes the name of the column in the well data that stores the storage coefficient data.
+<br/>
+<br/>
+<b><font size = "3">well_transmissivity_key</font></b>: *char* default *'Tr'*, describes the name of the column in the well data that stores transmissivity data ($Kb$).
+<br/>
+<br/>
+<b><font size = "3">well_layer_key</font></b>: *char* default *'lay'*, describes the name of the column in the well data that stores data of what aquifer layer the well takes from. Only used if *model_grid* is passed to the function and ensures that aquifer properties of the well are taken from the correct model grid layer.
+<br/>
+<br/>
+<b><font size = "3">model_grid</font></b>: *sf object* default *NULL*, describes a geometric series of model grid cells that contain aquifer property data *grid_layer_key*, *grid_stor_coef_key*, and *grid_transmissivity_key*.
+<br/>
+<br/>
+<b><font size = "3">grid_layer_key</font></b>: *char* default *'lay'*, describes the name of the column in the *model_grid* object that stores data of what aquifer layer the grid cells are attributed to.
+<br/>
+<br/>
+<b><font size = "3">grid_stor_coef_key</font></b>: *char* default *'Stor'*, describes the name of the column in the *model_grid* object that stores the storage coefficient data.
+<br/>
+<br/>
+<b><font size = "3">grid_transmissivity_key</font></b>: *char* default *'Tr'*, describes the name of the column in the *model_grid* object that stores transmissivity data ($Kb$).
+<br/>
+<br/>
+<b><font size = "3">stream_transmissivity_key</font></b>: *char* default *NULL*, describes the name of the column in the stream data that stores transmissivity data ($Kb$). Only necessary if *geologic_apportionment* is set to *TRUE*.
+<br/>
+<br/>
+<b><font size = "3">leakance_key</font></b>: *char* default *NULL*, describes the name of the column in the stream data that stores leakance data, where leakance is a product of the conductivity of the aquifer multiplied by the streambed clogging layer thickness divided by the streambed clogging layer conductivity $\frac{Kb^\text{'}}{K^\text{'}}$. Argument is required if *analytical_model* is set to *'hantush'*. Definition taken from Reeves (2008) referencing Hantush (1965).
+<br/>
+<br/>
+<b><font size = "3">lambda_key</font></b>: *char* default *NULL*, describes the name of the column in the stream data that stores lambda data, where lambda is a product of the width of the river multiplied by the conductivity of the streambed clogging layer divided by the thickness of the streambed clogging layer $w_{r}*\frac{K_{r}}{b_{r}}$. Argument is required if *analytical_model* is set to *'hunt'*. Definition taken from Zipper et al. (2019) referencing Hunt (1999).
+<br/>
+<br/>
+<b><font size = "3">prec</font></b>: *numeric* default *80*, describes how many bits of precision to use in the Rmpfr package when calculating exponential values. Required for the *'hunt'* and *'hantush'* analytical models.
+Exponential values in the *'hunt'* and *'hantush'* analytical models can often return **Inf** using base numerics, use of *prec* in Rmpfr alleviates this. Higher *prec* values will slow down processing. Default taken from streamDepletr package by Zipper (2019).
+<br/>
+<br/>
+<br/>
+<br/>
+
+# References
+
+Barlow and Leake (2012) https://pubs.usgs.gov/circ/1376/ <br/>
+Glover and Balmer (1954) https://doi.org/10.1029/TR035i003p00468 <br/>
+Hantush (1965) https://doi.org/10.1029/JZ070i012p02829 <br/>
+Hunt (1999) https://doi.org/10.1111/j.1745-6584.1999.tb00962.x <br/>
+Jenkins (1968) https://pubs.usgs.gov/twri/twri4d1/pdf/twri_4-D1_a.pdf <br/>
+Reeves (2008) https://doi.org/10.3133/ofr20081166 <br/>
+Zipper (2019) https://cran.r-project.org/web/packages/streamDepletr/index.html <br/>
+Zipper et al. (2019) https://doi.org/10.1029/2018WR024403 <br/>
+
+
+
+
+
