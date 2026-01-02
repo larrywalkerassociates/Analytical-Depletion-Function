@@ -4186,8 +4186,6 @@ map_stream_depletions <- function(streams,
       wells <- st_sf(wells)
       st_geometry(wells) <- 'geometry'
       coords <- st_coordinates(wells)
-      ncol_well_grid <- rle(as.character(coords[,2]))$lengths[1]
-      nrow_well_grid <- nrow(wells)/ncol_well_grid
       #-------------------------------------------------------------------------------
       
       
