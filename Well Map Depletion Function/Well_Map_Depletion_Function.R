@@ -1384,7 +1384,7 @@ map_stream_depletions <- function(streams,
         loading_bar(iter = i,
                     total = nrow(wells),
                     width = 50,
-                    optional_text = 'Closest point by reach')
+                    optional_text = 'Closest point by well')
         #-------------------------------------------------------------------------------
       }
       #-------------------------------------------------------------------------------
@@ -2448,35 +2448,37 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         #-------------------------------------------------------------------------------
+        # starting values
         depletions_potential_per_well_per_reach <- list()
         distances <- list()
         transmissivities <- list()
         storage_coefficients <- list()
-        counter <- 0
-        for(j in reach_indices){
+        points <- points[reach_indices]
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # calculating distances
+        distance <- st_distance(wells[i, ],
+                                stream_points_geometry[points, ])
+        distance <- as.numeric(distance)
+        distances[1:length(distance)] <- as.list(distance)
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # get aquifer properties depending on if its assigned on a per-well basis
+        # or if its going to be taken as an average of the aquifer properties along a line
+        # between the well and the nearest stream
+        if(is.null(model_grid) == TRUE){
+          transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
+          stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
+          transmissivities[1:length(distance)] <- transmissivity
+          storage_coefficients[1:length(distance)] <- stor_coef
+        } else {
           #-------------------------------------------------------------------------------
-          # increment list counter
-          counter <- counter + 1
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get distances
-          distance <- st_distance(wells[i, ],
-                                  stream_points_geometry[points[j], ])
-          distance <- as.numeric(distance)
-          distances[[counter]] <- distance
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get aquifer properties depending on if its assigned on a per-well basis
-          # or if its going to be taken as an average of the aquifer properties along a line
-          # between the well and the nearest stream
-          if(is.null(model_grid) == TRUE){
-            transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
-            stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-          } else {
+          # making linestrings between each well and each reach
+          lines <- list()
+          for(j in 1:length(points)){
             #-------------------------------------------------------------------------------
             # make line between well and stream
             m <- matrix(c(st_coordinates(wells[i, ])[,1],
@@ -2488,48 +2490,55 @@ map_stream_depletions <- function(streams,
             line <- st_sf(st_sfc(st_linestring(m), crs = st_crs(wells)))
             st_geometry(line) <- 'geometry'
             #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # selecting correct gridcells
-            grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
-            well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
-            gr <- model_grid[grid_layers == well_layers[i], ]
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # intersect line between well and stream with the grid
-            int <- st_intersects(gr, line$geometry)
-            grid_inds <- c(1:length(int))
-            rm <- which(lengths(int) == 0)
-            if(length(rm) > 0){
-              grid_inds <- grid_inds[-c(rm)]
-            } else {}
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # getting average properties from grid
-            gr <- gr[grid_inds, ]
-            transmissivity <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
-            stor_coef <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-            #-------------------------------------------------------------------------------
+            lines[[j]] <- line
           }
-          #-------------------------------------------------------------------------------
-
-          #-------------------------------------------------------------------------------
-          # calculate maximum stream depletion potential and
-          # multiply by fraction of depletions of this well apportioned to this reach
-          Q_out <- glover_stream_depletion_model(stor_coef = stor_coef,
-                                                 transmissivity = transmissivity,
-                                                 distance = distance,
-                                                 QW = pumping)
-          Q_fraction <- Q_out[[1]] * fracs[j]
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          depletions_potential_per_well_per_reach[[counter]] <- Q_fraction
+          # selecting correct gridcells
+          grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+          well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
+          gr <- model_grid[grid_layers == well_layers[i], ]
           #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # selecting which gridcells intersect linestrings
+          grid_inds <- lapply(lines, function(x){
+            #-------------------------------------------------------------------------------
+            # intersect line between well and stream with the grid
+            int <- st_intersects(gr, x$geometry)
+            gr_inds <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_inds <- gr_inds[-c(rm)]
+            } else {}
+            #-------------------------------------------------------------------------------
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # what are the transmissivities of those grid cells
+          transmissivities <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
+          })
+          storage_coefficients <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
+          })
+          #-------------------------------------------------------------------------------
+        }
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # using information to calculate depletions at each well
+        for(j in 1:length(reach_indices)){
+          Q_out <- glover_stream_depletion_model(stor_coef = storage_coefficients[[j]],
+                                                 transmissivity = transmissivities[[j]],
+                                                 distance = distances[[j]],
+                                                 QW = pumping)
+          Q_fraction <- Q_out[[1]] * fracs[reach_indices[j]]
+          depletions_potential_per_well_per_reach[[j]] <- Q_fraction
         }
         #-------------------------------------------------------------------------------
         
@@ -2539,7 +2548,6 @@ map_stream_depletions <- function(streams,
         depletions_total <- base::colSums(depletions_total)
         depletions_potential_per_well[[i]] <- depletions_total
         #-------------------------------------------------------------------------------
-        
         
         # -------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
@@ -2804,15 +2812,13 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
       }
       #-------------------------------------------------------------------------------
-      
+
       #-------------------------------------------------------------------------------
       # what are the closest points to each well
       points <- as.vector(unlist(closest_points_per_segment[i, ]))
       fracs <- as.vector(unlist(reach_impact_frac[i, ]))
       reach_indices <- c(1:length(points))
       rm <- which(is.na(points))
-      RN <- st_drop_geometry(stream_points_geometry[points, stream_id_key])
-      RN <- as.vector(unlist(RN))
       #-------------------------------------------------------------------------------
       
       #-------------------------------------------------------------------------------
@@ -2826,36 +2832,40 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         #-------------------------------------------------------------------------------
+        # starting values
         depletions_potential_per_well_per_reach <- list()
         distances <- list()
         transmissivities <- list()
-        lambdas <- list()
         storage_coefficients <- list()
-        counter <- 0
-        for(j in reach_indices){
+        lambdas <- list()
+        points <- points[reach_indices]
+        RN <- st_drop_geometry(stream_points_geometry[points, stream_id_key])
+        RN <- as.vector(unlist(RN))
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # calculating distances
+        distance <- st_distance(wells[i, ],
+                                stream_points_geometry[points, ])
+        distance <- as.numeric(distance)
+        distances[1:length(distance)] <- as.list(distance)
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # get aquifer properties depending on if its assigned on a per-well basis
+        # or if its going to be taken as an average of the aquifer properties along a line
+        # between the well and the nearest stream
+        if(is.null(model_grid) == TRUE){
+          transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
+          stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
+          transmissivities[1:length(distance)] <- transmissivity
+          storage_coefficients[1:length(distance)] <- stor_coef
+        } else {
           #-------------------------------------------------------------------------------
-          # increment list counter
-          counter <- counter + 1
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get distances
-          distance <- st_distance(wells[i, ],
-                                  stream_points_geometry[points[j], ])
-          distance <- as.numeric(distance)
-          distances[[counter]] <- distance
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get aquifer properties depending on if its assigned on a per-well basis
-          # or if its going to be taken as an average of the aquifer properties along a line
-          # between the well and the nearest stream
-          if(is.null(model_grid) == TRUE){
-            transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
-            stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-          } else {
+          # making linestrings between each well and each reach
+          lines <- list()
+          for(j in 1:length(points)){
             #-------------------------------------------------------------------------------
             # make line between well and stream
             m <- matrix(c(st_coordinates(wells[i, ])[,1],
@@ -2867,59 +2877,68 @@ map_stream_depletions <- function(streams,
             line <- st_sf(st_sfc(st_linestring(m), crs = st_crs(wells)))
             st_geometry(line) <- 'geometry'
             #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # selecting correct gridcells
-            grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
-            well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
-            gr <- model_grid[grid_layers == well_layers[i], ]
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # intersect line between well and stream with the grid
-            int <- st_intersects(gr, line$geometry)
-            grid_inds <- c(1:length(int))
-            rm <- which(lengths(int) == 0)
-            if(length(rm) > 0){
-              grid_inds <- grid_inds[-c(rm)]
-            } else {}
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # getting average properties from grid
-            gr <- gr[grid_inds, ]
-            transmissivity <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
-            stor_coef <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-            #-------------------------------------------------------------------------------
+            lines[[j]] <- line
           }
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # take weighted mean of lambda along the considered reach
-          # logic is that closer points will control more
-          reaches <- as.vector(unlist(st_drop_geometry(stream_points_geometry[,stream_id_key])))
-          stream_inds <- reaches == RN[j]
-          
-          lambda <- as.vector(unlist(st_drop_geometry(stream_points_geometry[stream_inds, lambda_key])))
-          lambdas[[counter]] <- lambda
+          # selecting correct gridcells
+          grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+          well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
+          gr <- model_grid[grid_layers == well_layers[i], ]
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # calculate maximum stream depletion potential and
-          # multiply by fraction of depletions of this well apportioned to this reach
-          Q_out <- hunt_stream_depletion_model(stor_coef = stor_coef,
-                                               transmissivity = transmissivity,
-                                               distance = distance,
+          # selecting which gridcells intersect linestrings
+          grid_inds <- lapply(lines, function(x){
+            #-------------------------------------------------------------------------------
+            # intersect line between well and stream with the grid
+            int <- st_intersects(gr, x$geometry)
+            gr_inds <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_inds <- gr_inds[-c(rm)]
+            } else {}
+            #-------------------------------------------------------------------------------
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # what are the transmissivities of those grid cells
+          transmissivities <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
+          })
+          storage_coefficients <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
+          })
+          #-------------------------------------------------------------------------------
+        }
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # take weighted mean of lambda along the considered reach
+        # logic is that closer points will control more
+        reaches <- as.vector(unlist(st_drop_geometry(stream_points_geometry[,stream_id_key])))
+        stream_inds <- reaches %in% RN
+        
+        lambda <- as.vector(unlist(st_drop_geometry(stream_points_geometry[stream_inds, lambda_key])))
+        lambdas <- vector(mode = 'list', length = length(lambda))
+        lambdas[1:length(lambda)] <- lambda
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # using information to calculate depletions at each well
+        for(j in 1:length(reach_indices)){
+          Q_out <- hunt_stream_depletion_model(stor_coef = storage_coefficients[[j]],
+                                               transmissivity = transmissivities[[j]],
+                                               distance = distances[[j]],
                                                QW = pumping,
-                                               lambda = lambda)
+                                               lambda = lambdas[[j]])
           Q_fraction <- Q_out[[1]] * fracs[j]
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          depletions_potential_per_well_per_reach[[counter]] <- Q_fraction
-          #-------------------------------------------------------------------------------
+          depletions_potential_per_well_per_reach[[j]] <- Q_fraction
         }
         #-------------------------------------------------------------------------------
         
@@ -2929,7 +2948,6 @@ map_stream_depletions <- function(streams,
         depletions_total <- base::colSums(depletions_total)
         depletions_potential_per_well[[i]] <- depletions_total
         #-------------------------------------------------------------------------------
-        
         
         # -------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
@@ -3206,8 +3224,6 @@ map_stream_depletions <- function(streams,
       fracs <- as.vector(unlist(reach_impact_frac[i, ]))
       reach_indices <- c(1:length(points))
       rm <- which(is.na(points))
-      RN <- st_drop_geometry(stream_points_geometry[points, stream_id_key])
-      RN <- as.vector(unlist(RN))
       #-------------------------------------------------------------------------------
       
       #-------------------------------------------------------------------------------
@@ -3221,36 +3237,40 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         #-------------------------------------------------------------------------------
+        # starting values
         depletions_potential_per_well_per_reach <- list()
         distances <- list()
         transmissivities <- list()
-        leakances <- list()
         storage_coefficients <- list()
-        counter <- 0
-        for(j in reach_indices){
+        leakances <- list()
+        points <- points[reach_indices]
+        RN <- st_drop_geometry(stream_points_geometry[points, stream_id_key])
+        RN <- as.vector(unlist(RN))
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # calculating distances
+        distance <- st_distance(wells[i, ],
+                                stream_points_geometry[points, ])
+        distance <- as.numeric(distance)
+        distances[1:length(distance)] <- as.list(distance)
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # get aquifer properties depending on if its assigned on a per-well basis
+        # or if its going to be taken as an average of the aquifer properties along a line
+        # between the well and the nearest stream
+        if(is.null(model_grid) == TRUE){
+          transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
+          stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
+          transmissivities[1:length(distance)] <- transmissivity
+          storage_coefficients[1:length(distance)] <- stor_coef
+        } else {
           #-------------------------------------------------------------------------------
-          # increment list counter
-          counter <- counter + 1
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get distances
-          distance <- st_distance(wells[i, ],
-                                  stream_points_geometry[points[j], ])
-          distance <- as.numeric(distance)
-          distances[[counter]] <- distance
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          # get aquifer properties depending on if its assigned on a per-well basis
-          # or if its going to be taken as an average of the aquifer properties along a line
-          # between the well and the nearest stream
-          if(is.null(model_grid) == TRUE){
-            transmissivity <- as.numeric(st_drop_geometry(wells[i,well_transmissivity_key]))
-            stor_coef <- as.numeric(st_drop_geometry(wells[i, well_stor_coef_key]))
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-          } else {
+          # making linestrings between each well and each reach
+          lines <- list()
+          for(j in 1:length(points)){
             #-------------------------------------------------------------------------------
             # make line between well and stream
             m <- matrix(c(st_coordinates(wells[i, ])[,1],
@@ -3262,59 +3282,68 @@ map_stream_depletions <- function(streams,
             line <- st_sf(st_sfc(st_linestring(m), crs = st_crs(wells)))
             st_geometry(line) <- 'geometry'
             #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # selecting correct gridcells
-            grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
-            well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
-            gr <- model_grid[grid_layers == well_layers[i], ]
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # intersect line between well and stream with the grid
-            int <- st_intersects(gr, line$geometry)
-            grid_inds <- c(1:length(int))
-            rm <- which(lengths(int) == 0)
-            if(length(rm) > 0){
-              grid_inds <- grid_inds[-c(rm)]
-            } else {}
-            #-------------------------------------------------------------------------------
-            
-            #-------------------------------------------------------------------------------
-            # getting average properties from grid
-            gr <- gr[grid_inds, ]
-            transmissivity <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
-            stor_coef <- mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
-            transmissivities[[counter]] <- transmissivity
-            storage_coefficients[[counter]] <- stor_coef
-            #-------------------------------------------------------------------------------
+            lines[[j]] <- line
           }
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # take weighted mean of lambda along the considered reach
-          # logic is that closer points will control more
-          reaches <- as.vector(unlist(st_drop_geometry(stream_points_geometry[,stream_id_key])))
-          stream_inds <- reaches == RN[j]
-          
-          leakance <- as.vector(unlist(st_drop_geometry(stream_points_geometry[stream_inds, leakance_key])))
-          leakances[[counter]] <- leakance
+          # selecting correct gridcells
+          grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
+          well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
+          gr <- model_grid[grid_layers == well_layers[i], ]
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
-          # calculate maximum stream depletion potential and
-          # multiply by fraction of depletions of this well apportioned to this reach
-          Q_out <- hantush_stream_depletion_model(stor_coef = stor_coef,
-                                                  transmissivity = transmissivity,
-                                                  distance = distance,
+          # selecting which gridcells intersect linestrings
+          grid_inds <- lapply(lines, function(x){
+            #-------------------------------------------------------------------------------
+            # intersect line between well and stream with the grid
+            int <- st_intersects(gr, x$geometry)
+            gr_inds <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_inds <- gr_inds[-c(rm)]
+            } else {}
+            #-------------------------------------------------------------------------------
+          })
+          #-------------------------------------------------------------------------------
+          
+          #-------------------------------------------------------------------------------
+          # what are the transmissivities of those grid cells
+          transmissivities <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_transmissivity_key]))), na.rm = T)
+          })
+          storage_coefficients <- lapply(1:length(grid_inds), function(i){
+            gr <- gr[grid_inds[[i]], ]
+            mean(as.vector(unlist(st_drop_geometry(gr[,grid_stor_coef_key]))), na.rm = T)
+          })
+          #-------------------------------------------------------------------------------
+        }
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # take weighted mean of lambda along the considered reach
+        # logic is that closer points will control more
+        reaches <- as.vector(unlist(st_drop_geometry(stream_points_geometry[,stream_id_key])))
+        stream_inds <- reaches %in% RN
+        
+        leakance <- as.vector(unlist(st_drop_geometry(stream_points_geometry[stream_inds, lambda_key])))
+        leakances <- vector(mode = 'list', length = length(leakance))
+        leakances[1:length(leakance)] <- leakance
+        #-------------------------------------------------------------------------------
+        
+        #-------------------------------------------------------------------------------
+        # using information to calculate depletions at each well
+        for(j in 1:length(reach_indices)){
+          Q_out <- hantush_stream_depletion_model(stor_coef = storage_coefficients[[j]],
+                                                  transmissivity = transmissivities[[j]],
+                                                  distance = distances[[j]],
                                                   QW = pumping,
-                                                  leakance = leakance)
-          Q_fraction <- Q_out[[1]]*fracs[j]
-          #-------------------------------------------------------------------------------
-          
-          #-------------------------------------------------------------------------------
-          depletions_potential_per_well_per_reach[[counter]] <- Q_fraction
-          #-------------------------------------------------------------------------------
+                                                  leakance = leakances[[j]])
+          Q_fraction <- Q_out[[1]] * fracs[j]
+          depletions_potential_per_well_per_reach[[j]] <- Q_fraction
         }
         #-------------------------------------------------------------------------------
         
@@ -3324,7 +3353,6 @@ map_stream_depletions <- function(streams,
         depletions_total <- base::colSums(depletions_total)
         depletions_potential_per_well[[i]] <- depletions_total
         #-------------------------------------------------------------------------------
-        
         
         # -------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
@@ -4805,7 +4833,6 @@ map_stream_depletions <- function(streams,
   
   
   
-  
   ############################################################################################
   # run calculate depletions
   
@@ -4890,7 +4917,6 @@ map_stream_depletions <- function(streams,
     #-------------------------------------------------------------------------------
   })
   #-------------------------------------------------------------------------------
-  
   
   
   #-------------------------------------------------------------------------------
