@@ -2406,13 +2406,6 @@ map_stream_depletions <- function(streams,
     
     
     
-    
-    
-    
-    
-    
-    
-    
     #-------------------------------------------------------------------------------
     depletions_potential_per_well <- list()
     custom_sdf_per_well <- list()
@@ -2428,7 +2421,7 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
       }
       #-------------------------------------------------------------------------------
-      
+
       #-------------------------------------------------------------------------------
       # what are the closest points to each well
       points <- as.vector(unlist(closest_points_per_segment[i, ]))
@@ -2436,7 +2429,7 @@ map_stream_depletions <- function(streams,
       reach_indices <- c(1:length(points))
       rm <- which(is.na(points))
       #-------------------------------------------------------------------------------
-      
+
       #-------------------------------------------------------------------------------
       # if no wells are associated with the reach then pass
       if(all(is.na(points) == TRUE) == FALSE){
@@ -2446,7 +2439,7 @@ map_stream_depletions <- function(streams,
           reach_indices <- reach_indices[-c(rm)]
         } else {}
         #-------------------------------------------------------------------------------
-        
+
         #-------------------------------------------------------------------------------
         # starting values
         depletions_potential_per_well_per_reach <- list()
@@ -2499,6 +2492,16 @@ map_stream_depletions <- function(streams,
           grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
           well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
           gr <- model_grid[grid_layers == well_layers[i], ]
+          if(str_to_title(proximity_criteria) %in% c('Local Area',
+                                                     'Expanding')){
+            int <- st_intersects(gr, st_buffer(wells[i, ], influence_radius)$geometry)
+            gr_rad <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_rad <- gr_rad[-c(rm)]
+            } else {}
+            gr <- gr[gr_rad, ]
+          }
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
@@ -2569,6 +2572,7 @@ map_stream_depletions <- function(streams,
         }
         #-------------------------------------------------------------------------------
       }
+
     }
     #-------------------------------------------------------------------------------
 
@@ -2886,6 +2890,16 @@ map_stream_depletions <- function(streams,
           grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
           well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
           gr <- model_grid[grid_layers == well_layers[i], ]
+          if(str_to_title(proximity_criteria) %in% c('Local Area',
+                                                     'Expanding')){
+            int <- st_intersects(gr, st_buffer(wells[i, ], influence_radius)$geometry)
+            gr_rad <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_rad <- gr_rad[-c(rm)]
+            } else {}
+            gr <- gr[gr_rad, ]
+          }
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
@@ -3291,6 +3305,16 @@ map_stream_depletions <- function(streams,
           grid_layers <- as.vector(unlist(st_drop_geometry(model_grid[,grid_layer_key])))
           well_layers <- as.vector(unlist(st_drop_geometry(wells[,well_layer_key])))
           gr <- model_grid[grid_layers == well_layers[i], ]
+          if(str_to_title(proximity_criteria) %in% c('Local Area',
+                                                     'Expanding')){
+            int <- st_intersects(gr, st_buffer(wells[i, ], influence_radius)$geometry)
+            gr_rad <- c(1:length(int))
+            rm <- which(lengths(int) == 0)
+            if(length(rm) > 0){
+              gr_rad <- gr_rad[-c(rm)]
+            } else {}
+            gr <- gr[gr_rad, ]
+          }
           #-------------------------------------------------------------------------------
           
           #-------------------------------------------------------------------------------
