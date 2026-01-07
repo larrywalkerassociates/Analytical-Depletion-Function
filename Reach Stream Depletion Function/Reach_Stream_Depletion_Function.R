@@ -2479,6 +2479,7 @@ calculate_stream_depletions <- function(streams,
         Jenk_SDF_per_well_total <- do.call(rbind, Jenk_SDF_per_well)
         #-------------------------------------------------------------------------------
         
+        #-------------------------------------------------------------------------------
         average_fractional_depletions <- calculate_depletion_potential(depletion_potential_criteria = depletion_potential_criteria,
                                                                        depletions_potential_per_well_total = depletions_potential_per_well_total,
                                                                        distances = distances,
@@ -2491,15 +2492,37 @@ calculate_stream_depletions <- function(streams,
         
         jenk_sdf_per_reach[[i]] <- average_Jenk_SDF
         depletions_potential_per_reach[[i]] <- average_fractional_depletions
-        depletions_per_reach[[i]] <- base::rowSums(depletions_total)
-        pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total)
+        #-------------------------------------------------------------------------------
         
         
+        #-------------------------------------------------------------------------------
+        # removing wells in the special case that they are outside the model grid and the shortest
+        # distance between a well and a reach contains no model gridcells, or have no
+        # aquifer properties assigned to them
+        # this would cause columns in the base::rowSums() to have NaN values, making
+        # the end result would then be all NaN because of a single column of NaNs
+        rm <- c()
+        for(k in 1:ncol(depletions_total)){
+          if(all(is.na(depletions_total[,k])) == TRUE){
+            rm <- append(rm,k)
+          } else {}
+        }
+        if(length(rm) > 0){
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total[ ,-c(rm)], na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total[ ,-c(rm)], na.rm = T)
+        } else {
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total, na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total, na.rm = T)
+        }
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
-
           custom_sdf_per_reach[[i]] <- calculate_custom_sdf_time(average_fractional_depletions,
                                                                  target = custom_sdf_time)
         }
+        #-------------------------------------------------------------------------------
       } else{
         depletions_per_reach[[i]] <- rep(0, ncol(pumping)) # reach has no depletions
         pump_frac_per_reach[[i]] <- rep(0, ncol(pumping))
@@ -3053,9 +3076,32 @@ calculate_stream_depletions <- function(streams,
         
         jenk_sdf_per_reach[[i]] <- average_Jenk_SDF
         depletions_potential_per_reach[[i]] <- average_fractional_depletions
-        depletions_per_reach[[i]] <- base::rowSums(depletions_total)
-        pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total)
+        #-------------------------------------------------------------------------------
         
+        
+        #-------------------------------------------------------------------------------
+        # removing wells in the special case that they are outside the model grid and the shortest
+        # distance between a well and a reach contains no model gridcells, or have no
+        # aquifer properties assigned to them
+        # this would cause columns in the base::rowSums() to have NaN values, making
+        # the end result would then be all NaN because of a single column of NaNs
+        rm <- c()
+        for(k in 1:ncol(depletions_total)){
+          if(all(is.na(depletions_total[,k])) == TRUE){
+            rm <- append(rm,k)
+          } else {}
+        }
+        if(length(rm) > 0){
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total[ ,-c(rm)], na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total[ ,-c(rm)], na.rm = T)
+        } else {
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total, na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total, na.rm = T)
+        }
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
           
           custom_sdf_per_reach[[i]] <- calculate_custom_sdf_time(average_fractional_depletions,
@@ -3640,8 +3686,32 @@ calculate_stream_depletions <- function(streams,
         
         jenk_sdf_per_reach[[i]] <- average_Jenk_SDF
         depletions_potential_per_reach[[i]] <- average_fractional_depletions
-        depletions_per_reach[[i]] <- base::rowSums(depletions_total)
-        pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total)
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
+        # removing wells in the special case that they are outside the model grid and the shortest
+        # distance between a well and a reach contains no model gridcells, or have no
+        # aquifer properties assigned to them
+        # this would cause columns in the base::rowSums() to have NaN values, making
+        # the end result would then be all NaN because of a single column of NaNs
+        rm <- c()
+        for(k in 1:ncol(depletions_total)){
+          if(all(is.na(depletions_total[,k])) == TRUE){
+            rm <- append(rm,k)
+          } else {}
+        }
+        if(length(rm) > 0){
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total[ ,-c(rm)], na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total[ ,-c(rm)], na.rm = T)
+        } else {
+          depletions_per_reach[[i]] <- base::rowSums(depletions_total, na.rm = T)
+          pump_frac_per_reach[[i]] <- base::rowSums(pump_frac_per_well_total, na.rm = T)
+        }
+        #-------------------------------------------------------------------------------
+        
+        
+        #-------------------------------------------------------------------------------
         if(is.null(custom_sdf_time) == FALSE){
           
           custom_sdf_per_reach[[i]] <- calculate_custom_sdf_time(average_fractional_depletions,
