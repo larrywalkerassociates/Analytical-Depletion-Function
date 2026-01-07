@@ -2436,7 +2436,7 @@ map_stream_depletions <- function(streams,
     if(clip_by_basin == TRUE){
       if(wells_initially_null == FALSE){
         int <- st_intersects(wells,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
@@ -2500,7 +2500,7 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         int <- st_intersects(w_gr,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
@@ -3010,7 +3010,7 @@ map_stream_depletions <- function(streams,
     if(clip_by_basin == TRUE){
       if(wells_initially_null == FALSE){
         int <- st_intersects(wells,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
@@ -3074,7 +3074,7 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         int <- st_intersects(w_gr,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
@@ -3604,7 +3604,7 @@ map_stream_depletions <- function(streams,
     if(clip_by_basin == TRUE){
       if(wells_initially_null == FALSE){
         int <- st_intersects(wells,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
@@ -3668,7 +3668,7 @@ map_stream_depletions <- function(streams,
         #-------------------------------------------------------------------------------
         
         int <- st_intersects(w_gr,
-                             b118)
+                             basin)
         wells_within_basin <- c(1:length(int))
         rm <- which(lengths(int) == 0)
         if(length(rm) > 0){
